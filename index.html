@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urgencias Pediátricas - Calculadora interactiva</title>
+    
+    <!-- 1. Cargar React y ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 2. Cargar Babel para entender JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 3. Cargar Tailwind CSS para los estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Estilos adicionales -->
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* Animaciones suaves */
+        .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 300ms; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONOS SVG (Incrustados para no requerir imports externos) ---
+        const IconBase = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Thermometer = (props) => <IconBase {...props}><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"></path></IconBase>;
+        const Activity = (props) => <IconBase {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></IconBase>;
+        const Droplet = (props) => <IconBase {...props}><path d="M12 22a7 7 0 0 0 7-7c0-2-2-3-2-3L12 2 7 12s-2 1-2 3a7 7 0 0 0 7 7z"></path></IconBase>;
+        const Zap = (props) => <IconBase {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></IconBase>;
+        const AlertTriangle = (props) => <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></IconBase>;
+        const Heart = (props) => <IconBase {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></IconBase>;
+        const Skull = (props) => <IconBase {...props}><circle cx="9" cy="12" r="1"></circle><circle cx="15" cy="12" r="1"></circle><path d="M8 20v2h8v-2"></path><path d="m12.5 17-.5-1-.5 1h1z"></path><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"></path></IconBase>;
+        const Wind = (props) => <IconBase {...props}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path><path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path><path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path></IconBase>;
+        const ChevronRight = (props) => <IconBase {...props}><polyline points="9 18 15 12 9 6"></polyline></IconBase>;
+        const ChevronLeft = (props) => <IconBase {...props}><polyline points="15 18 9 12 15 6"></polyline></IconBase>;
+        const Scale = (props) => <IconBase {...props}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M7 21h10"></path><path d="M12 3v18"></path><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path></IconBase>;
+        const Menu = (props) => <IconBase {...props}><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></IconBase>;
+        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></IconBase>;
+        const Grid = (props) => <IconBase {...props}><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></IconBase>;
+        const Pill = (props) => <IconBase {...props}><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></IconBase>;
+        const Syringe = (props) => <IconBase {...props}><path d="m18 2 4 4"></path><path d="m17 7 3-3"></path><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"></path><path d="m9 11 4 4"></path><path d="m5 19-3 3"></path><path d="m14 4 6 6"></path></IconBase>;
+        const Tube = (props) => <IconBase {...props}><path d="M9 12h6"></path><path d="M12 3v18"></path><path d="M5 19a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path></IconBase>;
+
+        // --- COMPONENTES DE LA APLICACIÓN ---
+
+        const RouteTabs = ({ activeTab, onTabChange, color }) => (
+            <div className="flex p-1 bg-gray-100 rounded-lg mb-4">
+                <button
+                onClick={() => onTabChange('oral')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                    activeTab === 'oral' 
+                    ? 'bg-white shadow text-gray-800' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+                >
+                <Pill size={16} /> Vía Oral
+                </button>
+                <button
+                onClick={() => onTabChange('iv')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                    activeTab === 'iv' 
+                    ? 'bg-white shadow text-gray-800' 
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+                >
+                <Syringe size={16} /> IV / IM
+                </button>
+            </div>
+        );
+
+        const Slide = ({ title, icon: Icon, color, children }) => (
+            <div className="flex flex-col h-full bg-white rounded-xl shadow-2xl overflow-hidden border-t-8" style={{ borderColor: color }}>
+                <div className="p-4 md:p-6 flex items-center justify-between border-b" style={{ backgroundColor: `${color}10` }}>
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 md:p-3 rounded-lg text-white shadow-lg`} style={{ backgroundColor: color }}>
+                    <Icon size={24} className="w-8 h-8 md:w-8 md:h-8" />
+                    </div>
+                    <h2 className="text-xl md:text-3xl font-bold text-gray-800">{title}</h2>
+                </div>
+                </div>
+                <div className="flex-1 p-4 md:p-6 overflow-y-auto bg-slate-50">
+                {children}
+                </div>
+            </div>
+        );
+
+        // Componente visual para la dilución de la jeringa
+        const SyringeVisual = ({ drugParts, solventParts, color }) => {
+            const total = drugParts + solventParts;
+            const drugPct = (drugParts / total) * 100;
+            const solventPct = (solventParts / total) * 100;
+            
+            return (
+                <div className="mt-3 mb-2">
+                    <div className="flex text-xs font-bold text-gray-500 mb-1 justify-between uppercase">
+                        <span>Fármaco ({drugParts}cc)</span>
+                        <span>Suero ({solventParts}cc)</span>
+                    </div>
+                    <div className="h-6 w-full rounded-full overflow-hidden flex border border-gray-300 shadow-inner">
+                        <div style={{ width: `${drugPct}%`, backgroundColor: color }} className="h-full flex items-center justify-center text-white text-[10px] font-bold">
+                            {drugParts}ml
+                        </div>
+                        <div style={{ width: `${solventPct}%` }} className="h-full bg-gray-100 flex items-center justify-center text-gray-400 text-[10px] font-bold">
+                            {solventParts}ml SSF
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const DoseCard = ({ drug, weight, doseInfo, concentrations, color, notes, warning, unit = 'mg', dilution }) => {
+            const [calculated, setCalculated] = useState(null);
+            const [volume, setVolume] = useState(null);
+
+            useEffect(() => {
+                const w = parseFloat(weight);
+                if (!isNaN(w) && w > 0) {
+                    let doseVal = doseInfo.perKg * w;
+                    if (doseInfo.max && doseVal > doseInfo.max) doseVal = doseInfo.max;
+                    setCalculated(doseVal);
+
+                    if (concentrations && concentrations.mgPerMl) {
+                        const vol = doseVal / concentrations.mgPerMl;
+                        setVolume(vol);
+                    } else {
+                        setVolume(null);
+                    }
+                } else {
+                    setCalculated(null);
+                    setVolume(null);
+                }
+            }, [weight, doseInfo, concentrations]);
+
+            return (
+                <div className="bg-white rounded-lg shadow-md p-4 border-l-4 mb-4 relative overflow-hidden" style={{ borderColor: color }}>
+                {warning && (
+                    <div className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 absolute top-0 right-0 rounded-bl-lg">
+                    {warning}
+                    </div>
+                )}
+                <div className="flex justify-between items-start mb-2 mt-1">
+                    <h3 className="text-lg md:text-xl font-bold text-gray-800">{drug}</h3>
+                    {calculated !== null && (
+                    <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs md:text-sm font-mono shadow-md whitespace-nowrap">
+                        {weight} kg
+                    </span>
+                    )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-xs text-gray-500 uppercase font-semibold">Dosis Teórica</p>
+                        <p className="text-base md:text-lg font-medium text-gray-700">{doseInfo.text}</p>
+                        {doseInfo.maxText && <p className="text-xs text-red-500 font-medium">Máx: {doseInfo.maxText}</p>}
+                        
+                        {dilution && (
+                            <div className="mt-2">
+                                <SyringeVisual 
+                                    drugParts={dilution.drugParts} 
+                                    solventParts={dilution.solventParts} 
+                                    color={color} 
+                                />
+                                <p className="text-xs text-gray-500 italic text-center">
+                                    Mezcla total: {dilution.drugParts + dilution.solventParts} cc
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={`p-3 rounded-lg ${calculated !== null ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50'}`}>
+                    <p className="text-xs text-gray-500 uppercase font-semibold">Dosis Paciente</p>
+                    {calculated !== null ? (
+                        <div>
+                        <p className="text-xl md:text-2xl font-bold text-blue-600">
+                            {typeof calculated === 'number' ? calculated.toFixed(2).replace(/\.00$/, '') : calculated} {unit}
+                        </p>
+                        {volume !== null && concentrations && (
+                            <div className="mt-1">
+                                <p className="text-base md:text-lg font-semibold text-green-600">
+                                ⮕ {volume.toFixed(2).replace(/\.00$/, '')} ml
+                                </p>
+                                <p className="text-xs text-gray-500 font-normal">
+                                    de la dilución ({concentrations.name} {concentrations.mgPerMl}{unit}/ml)
+                                </p>
+                            </div>
+                        )}
+                        </div>
+                    ) : (
+                        <p className="text-gray-400 italic text-sm mt-1">Introduce peso</p>
+                    )}
+                    </div>
+                </div>
+                
+                {notes && <p className="mt-3 text-xs md:text-sm text-gray-600 border-t pt-2 italic">{notes}</p>}
+                </div>
+            );
+        };
+
+        const MainMenu = ({ slides, onNavigate, colors }) => {
+            const menuItems = slides.filter(slide => slide.id !== 'cover');
+
+            return (
+                <div className="h-full bg-slate-50 rounded-xl shadow-2xl overflow-y-auto p-4 md:p-8">
+                <div className="text-center mb-8">
+                    <h2 className="text-3xl font-bold text-gray-800 flex items-center justify-center gap-3">
+                    <Grid className="text-blue-600" size={32} /> 
+                    Índice de Protocolos
+                    </h2>
+                    <p className="text-gray-500 mt-2">Selecciona una categoría para ver el protocolo y dosis</p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                    {menuItems.map((item, index) => {
+                    const Icon = item.meta.icon;
+                    return (
+                        <button
+                        key={item.id}
+                        onClick={() => onNavigate(index + 1)}
+                        className="group relative overflow-hidden bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border-l-8 text-left flex flex-col justify-between h-40 md:h-48"
+                        style={{ borderColor: item.meta.color }}
+                        >
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all">
+                            <Icon size={80} color={item.meta.color} />
+                        </div>
+                        
+                        <div className="relative z-10">
+                            <div 
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform"
+                            style={{ backgroundColor: item.meta.color }}
+                            >
+                            <Icon size={24} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
+                            {item.meta.title}
+                            </h3>
+                        </div>
+                        
+                        <div className="flex items-center text-sm font-semibold text-gray-400 mt-2 group-hover:text-gray-600">
+                            Ver protocolo <ChevronRight size={16} className="ml-1" />
+                        </div>
+                        </button>
+                    );
+                    })}
+                </div>
+                </div>
+            );
+        };
+
+        function UrgenciasApp() {
+            const [slideIndex, setSlideIndex] = useState(0);
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [weight, setWeight] = useState('');
+            
+            const [activeTabs, setActiveTabs] = useState({
+                pain: 'oral',
+                sedation: 'iv'
+            });
+
+            const handleTabChange = (slideId, tab) => {
+                setActiveTabs(prev => ({ ...prev, [slideId]: tab }));
+            };
+            
+            const colors = {
+                pain: '#ef4444', 
+                sedation: '#8b5cf6', 
+                fluids: '#3b82f6', 
+                seizure: '#f59e0b', 
+                allergy: '#ec4899', 
+                cpr: '#10b981', 
+                toxic: '#6366f1', 
+                resp: '#06b6d4', 
+                intub: '#1e3a8a' // Dark Blue for SRI
+            };
+
+            const slides = [
+                {
+                id: 'cover',
+                meta: { title: 'Portada', icon: Home, color: '#3b82f6' },
+                render: () => (
+                    <div className="h-full flex flex-col items-center justify-center text-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-2xl p-8">
+                    <Activity size={80} className="mb-6 animate-pulse" />
+                    <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">URGENCIAS EN PEDIATRÍA</h1>
+                    <p className="text-xl md:text-2xl font-light mb-8 opacity-90">Farmacología Práctica y Guía Rápida</p>
+                    
+                    <div className="bg-white/20 backdrop-blur-md rounded-xl p-6 mb-8 max-w-md w-full border border-white/30">
+                        <div className="flex items-center gap-3 mb-2 justify-center">
+                        <Scale size={24} />
+                        <label className="text-lg font-semibold">Calculadora Interactiva</label>
+                        </div>
+                        <p className="text-sm mb-4 opacity-90">Introduce el peso del paciente para calcular dosis en toda la app.</p>
+                        <div className="relative">
+                        <input 
+                            type="number" 
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                            placeholder="Peso en kg" 
+                            className="w-full p-4 rounded-lg text-gray-900 text-center text-2xl font-bold shadow-inner focus:ring-4 focus:ring-blue-300 outline-none transition-all"
+                        />
+                        <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold">KG</span>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={() => setIsMenuOpen(true)}
+                        className="mt-6 bg-white text-blue-600 px-8 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-2 group"
+                    >
+                        <Grid size={20} className="group-hover:rotate-180 transition-transform duration-500"/>
+                        Ver Índice / Menú
+                    </button>
+                    </div>
+                )
+                },
+                {
+                id: 'pain',
+                meta: { title: 'Dolor y fiebre', icon: Thermometer, color: colors.pain },
+                render: () => (
+                    <Slide title="Dolor y fiebre" icon={Thermometer} color={colors.pain}>
+                    <RouteTabs 
+                        activeTab={activeTabs.pain} 
+                        onTabChange={(tab) => handleTabChange('pain', tab)} 
+                        color={colors.pain}
+                    />
+                    
+                    <div className="space-y-6">
+                        {activeTabs.pain === 'oral' ? (
+                        <React.Fragment>
+                            <DoseCard 
+                            key="paracetamol-oral"
+                            drug="Paracetamol ORAL"
+                            weight={weight}
+                            color={colors.pain}
+                            doseInfo={{ perKg: 15, text: "10-15 mg/kg cada 4-6h", max: 1000, maxText: "1g/dosis (4g/día)" }}
+                            concentrations={{ name: "Solución", mgPerMl: 100 }}
+                            notes="Truco: 0.15 x Kg = ml a administrar (sol. 100mg/ml)"
+                            />
+                            <DoseCard 
+                            key="ibuprofeno-oral"
+                            drug="Ibuprofeno ORAL"
+                            weight={weight}
+                            color={colors.pain}
+                            doseInfo={{ perKg: 10, text: "5-10 mg/kg cada 6-8h", max: 600, maxText: "40 mg/kg/día" }}
+                            concentrations={{ name: "Jarabe 2%", mgPerMl: 20 }}
+                            notes="Edad > 3 meses. Truco (Dalsy 20mg/ml): Peso / 3 = ml a administrar."
+                            warning="No usar en < 3 meses"
+                            />
+                            <DoseCard 
+                            key="metamizol-oral"
+                            drug="Metamizol ORAL"
+                            weight={weight}
+                            color={colors.pain}
+                            doseInfo={{ perKg: 17, text: "12.5 - 20 mg/kg", max: 2000, maxText: "2g/dosis (6g/día)" }}
+                            concentrations={{ name: "Jarabe", mgPerMl: 50 }} 
+                            notes="Edad > 3 meses. Dosis media: 15-17 mg/kg."
+                            />
+                        </React.Fragment>
+                        ) : (
+                        <React.Fragment>
+                            <DoseCard 
+                            key="paracetamol-iv"
+                            drug="Paracetamol IV"
+                            weight={weight}
+                            color={colors.pain}
+                            doseInfo={{ 
+                                perKg: weight && parseFloat(weight) < 10 ? 7.5 : 15, 
+                                text: weight && parseFloat(weight) < 10 ? "7.5 mg/kg (<10kg)" : "15 mg/kg (>10kg)", 
+                                max: 1000, 
+                                maxText: "1g/dosis (>50kg)" 
+                            }}
+                            concentrations={{ name: "Vial", mgPerMl: 10 }}
+                            notes="Diluir con SSF. Dosis máx: 30mg/kg/día (<10kg) o 60mg/kg/día (>10kg)."
+                            warning={weight && parseFloat(weight) < 10 ? "Atención: Dosis reducida en <10kg" : null}
+                            />
+                            <DoseCard 
+                            key="metamizol-iv"
+                            drug="Metamizol IV / IM"
+                            weight={weight}
+                            color={colors.pain}
+                            doseInfo={{ perKg: 12, text: "6.4 - 17 mg/kg", max: 2000, maxText: "2g/dosis" }}
+                            concentrations={{ name: "Ampolla", mgPerMl: 400 }} 
+                            notes="Administración lenta (riesgo hipotensión). Dosis considerablemente menor que oral."
+                            />
+                            <DoseCard 
+                            key="ibuprofeno-iv"
+                            drug="Ibuprofeno IV"
+                            weight={weight}
+                            color={colors.pain}
+                            doseInfo={{ perKg: 7, text: "5 - 10 mg/kg", max: 400, maxText: "400 mg/dosis" }}
+                            notes="Diluir. Administrar en 30 min."
+                            warning="Solo > 6 años o > 20kg"
+                            />
+                        </React.Fragment>
+                        )}
+                    </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'sedation',
+                meta: { title: 'Sedación y analgesia', icon: Zap, color: colors.sedation },
+                render: () => (
+                    <Slide title="Sedación y analgesia" icon={Zap} color={colors.sedation}>
+                    <RouteTabs 
+                        activeTab={activeTabs.sedation} 
+                        onTabChange={(tab) => handleTabChange('sedation', tab)} 
+                        color={colors.sedation}
+                    />
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {activeTabs.sedation === 'iv' ? (
+                        <React.Fragment>
+                            <DoseCard 
+                            key="ketamina-iv"
+                            drug="Ketamina IV"
+                            weight={weight}
+                            color={colors.sedation}
+                            doseInfo={{ perKg: 1.5, text: "1-2 mg/kg", max: 100, maxText: "100 mg/dosis" }}
+                            concentrations={{ name: "Vial", mgPerMl: 50 }}
+                            notes="Inicio: 1-2 min. Duración: 15-20 min. Puede ir sin diluir."
+                            />
+                            <DoseCard 
+                            key="midazolam-iv"
+                            drug="Midazolam IV"
+                            weight={weight}
+                            color={colors.sedation}
+                            doseInfo={{ perKg: 0.1, text: "0.02 - 0.1 mg/kg", max: 6, maxText: "6mg (<12a)" }}
+                            concentrations={{ name: "Ampolla", mgPerMl: 1 }} 
+                            notes="Monitorizar O2. Esperar 2-3 min entre dosis."
+                            />
+                            <DoseCard 
+                            key="ketamina-im"
+                            drug="Ketamina IM"
+                            weight={weight}
+                            color={colors.sedation}
+                            doseInfo={{ perKg: 5, text: "5 mg/kg (IM)", max: 300, maxText: "300 mg" }}
+                            notes="Dosis IM es mucho mayor que IV."
+                            />
+                        </React.Fragment>
+                        ) : (
+                        <React.Fragment>
+                            <DoseCard 
+                            key="ketamina-oral"
+                            drug="Ketamina ORAL"
+                            weight={weight}
+                            color={colors.sedation}
+                            doseInfo={{ perKg: 7, text: "6 - 8 mg/kg", max: 300, maxText: "300 mg" }}
+                            notes="Uso exclusivo vía oral."
+                            />
+                            <DoseCard 
+                            key="midazolam-oral"
+                            drug="Midazolam ORAL"
+                            weight={weight}
+                            color={colors.sedation}
+                            doseInfo={{ perKg: 0.5, text: "0.5 mg/kg", max: 15, maxText: "15 mg" }}
+                            notes="Inicio de acción: 30 min."
+                            />
+                            <DoseCard 
+                            key="midazolam-in"
+                            drug="Midazolam IN (Intranasal)"
+                            weight={weight}
+                            color={colors.sedation}
+                            doseInfo={{ perKg: 0.3, text: "0.2 - 0.3 mg/kg", max: 10, maxText: "10 mg" }}
+                            concentrations={{ name: "Atomizador", mgPerMl: 5 }} 
+                            notes="Máx 1ml por narina. Usar concentraciones altas (5mg/ml)."
+                            />
+                        </React.Fragment>
+                        )}
+                    </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'seizure',
+                meta: { title: 'Convulsiones', icon: Activity, color: colors.seizure },
+                render: () => (
+                    <Slide title="Convulsiones" icon={Activity} color={colors.seizure}>
+                    <div className="space-y-4">
+                        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                        <h3 className="font-bold text-amber-800 text-lg mb-1">Algoritmo de Actuación</h3>
+                        <p className="text-amber-700 text-sm">Prioridad: ABC + Oxígeno + Glucemia</p>
+                        </div>
+
+                        <div className="relative pl-8 space-y-6 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
+                        
+                        <div className="relative">
+                            <div className="absolute -left-10 bg-amber-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
+                            <DoseCard 
+                            key="diazepam-iv"
+                            drug="Diazepam IV"
+                            weight={weight}
+                            color={colors.seizure}
+                            doseInfo={{ perKg: 0.2, text: "0.2 mg/kg", max: 10, maxText: "5mg (<5a) / 10mg (>5a)" }}
+                            concentrations={{ name: "Ampolla", mgPerMl: 5 }}
+                            notes="Inyectar lento (2-3 min). Puede deprimir respiración."
+                            />
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute -left-10 bg-amber-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
+                            <div className="bg-white p-4 rounded-lg shadow border border-amber-200">
+                            <h4 className="font-bold text-gray-800">Si no hay vía: Midazolam IM/IN/Bucal</h4>
+                            <div className="mt-2 text-sm text-gray-600">
+                                <p><strong>Dosis:</strong> 0.2 - 0.3 mg/kg</p>
+                                <p><strong>Máximo:</strong> 10 mg</p>
+                                {weight > 0 && (
+                                <p className="mt-2 font-bold text-amber-600">
+                                    Cálculo paciente: {(0.25 * weight).toFixed(1)} mg
+                                </p>
+                                )}
+                            </div>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute -left-10 bg-amber-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">3</div>
+                            <div className="bg-white p-4 rounded-lg shadow border border-amber-200">
+                            <h4 className="font-bold text-gray-800">Alternativa: Diazepam Rectal</h4>
+                            <div className="mt-2 text-sm text-gray-600">
+                                <p><strong>Dosis:</strong> 0.5 mg/kg</p>
+                                <p><strong>Presentaciones:</strong> Stesolid 5mg ({'<'}10kg) o 10mg ({'>'}15kg)</p>
+                            </div>
+                            </div>
+                        </div>
+
+                        </div>
+                    </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'dehydration',
+                meta: { title: 'Deshidratación', icon: Droplet, color: colors.fluids },
+                render: () => (
+                    <Slide title="Deshidratación" icon={Droplet} color={colors.fluids}>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
+                        <h3 className="font-bold text-blue-800 mb-3 text-lg">Rehidratación Oral (SRO)</h3>
+                        <div className="space-y-3">
+                            <div className="bg-white p-3 rounded shadow-sm">
+                            <span className="block text-xs font-bold text-gray-400 uppercase">Leve (3-5%)</span>
+                            <span className="text-xl font-bold text-blue-600">30-50 ml/kg</span>
+                            {weight > 0 && <span className="block text-sm text-gray-500">Total: {(30*parseFloat(weight)).toFixed(0)}-{(50*parseFloat(weight)).toFixed(0)} ml en 4h</span>}
+                            </div>
+                            <div className="bg-white p-3 rounded shadow-sm">
+                            <span className="block text-xs font-bold text-gray-400 uppercase">Moderada (5-9%)</span>
+                            <span className="text-xl font-bold text-blue-600">50-90 ml/kg</span>
+                            {weight > 0 && <span className="block text-sm text-gray-500">Total: {(50*parseFloat(weight)).toFixed(0)}-{(90*parseFloat(weight)).toFixed(0)} ml en 4h</span>}
+                            </div>
+                            <div className="text-sm text-gray-600 mt-2">
+                            <p>• Por vómito: + 2-3 ml/kg (5 ml c/ 2-5 min)</p>
+                            <p>• Por deposición: + 5-10 ml/kg</p>
+                            </div>
+                        </div>
+                        </div>
+
+                        <div className="bg-red-50 p-5 rounded-xl border border-red-200">
+                        <h3 className="font-bold text-red-800 mb-3 text-lg flex items-center gap-2">
+                            <AlertTriangle size={20}/> Deshidratación Grave
+                        </h3>
+                        <div className="bg-white p-4 rounded shadow-sm border-l-4 border-red-500">
+                            <p className="text-sm font-bold text-gray-500 uppercase">Bolo IV Rápido</p>
+                            <p className="text-3xl font-bold text-gray-800 mb-1">20 ml/kg</p>
+                            <p className="text-sm text-gray-600">Suero Fisiológico 0.9%</p>
+                            {weight > 0 && (
+                            <div className="mt-3 pt-3 border-t">
+                                <p className="font-bold text-red-600 text-lg">Administrar: {(20 * parseFloat(weight)).toFixed(0)} ml</p>
+                            </div>
+                            )}
+                        </div>
+                        <p className="text-xs text-red-600 mt-3">
+                            * Máximo 700 ml/h. Vigilar signos de sobrecarga. Nunca superar déficit calculado.
+                        </p>
+                        </div>
+
+                        <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h4 className="font-bold text-gray-700">Antiemético (Valorar)</h4>
+                        <p className="text-sm text-gray-600 mb-2">Ondansetrón 0.15 mg/kg (Máx 8 mg)</p>
+                        {weight > 0 && (
+                            <span className="bg-gray-200 px-2 py-1 rounded text-sm font-mono">
+                            Dosis: {(0.15 * parseFloat(weight)).toFixed(1)} mg
+                            </span>
+                        )}
+                        </div>
+                    </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'toxic',
+                meta: { title: 'Intoxicaciones', icon: Skull, color: colors.toxic },
+                render: () => (
+                    <Slide title="Intoxicaciones" icon={Skull} color={colors.toxic}>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
+                        
+                        <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
+                            <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-bold text-indigo-900">Paracetamol</h3>
+                            <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded">Tóxico: {'>'}150 mg/kg</span>
+                            </div>
+                            <DoseCard 
+                            key="nac-oral"
+                            drug="N-Acetilcisteína (Oral)"
+                            weight={weight}
+                            color={colors.toxic}
+                            doseInfo={{ perKg: 140, text: "Carga: 140 mg/kg", max: null, maxText: "" }}
+                            concentrations={{ name: "Fluimucil 20%", mgPerMl: 200 }} 
+                            notes="Mantenimiento: 70 mg/kg cada 4h (17 dosis). Diluir al 5% en zumo/refresco."
+                            />
+                        </div>
+
+                        <DoseCard 
+                            key="carbon"
+                            drug="Carbón Activado"
+                            weight={weight}
+                            color="gray"
+                            doseInfo={{ perKg: 1, text: "1 g/kg", max: 50, maxText: "50-100g (>12a)" }}
+                            notes="Dilución: 200cc líquido por cada 25g. NO mezclar con leche/yogur."
+                            />
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                            <DoseCard 
+                                key="flumazenilo"
+                                drug="Flumazenilo (BZD)"
+                                weight={weight}
+                                color={colors.toxic}
+                                doseInfo={{ perKg: 0.01, text: "0.01 mg/kg", max: 1, maxText: "1 mg" }}
+                                concentrations={{ name: "Ampolla", mgPerMl: 0.1 }}
+                                notes="Admin rápida (15-30s). Cuidado convulsiones."
+                            />
+                            <DoseCard 
+                                key="naloxona"
+                                drug="Naloxona (Opioides)"
+                                weight={weight}
+                                color={colors.toxic}
+                                doseInfo={{ perKg: 0.01, text: "0.01 mg/kg", max: 10, maxText: "10 mg" }}
+                                concentrations={{ name: "Ampolla", mgPerMl: 0.4 }}
+                                notes="Repetir c/2-3 min. Diluir 1cc + 3cc SSF."
+                            />
+                            </div>
+
+                        </div>
+                    </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'anaphylaxis',
+                meta: { title: 'Anafilaxia', icon: AlertTriangle, color: colors.allergy },
+                render: () => (
+                    <Slide title="Anafilaxia" icon={AlertTriangle} color={colors.allergy}>
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <div className="w-full max-w-2xl bg-pink-50 border-2 border-pink-400 rounded-xl p-6 text-center shadow-lg transform transition-all hover:scale-105">
+                        <h3 className="text-2xl font-bold text-pink-700 mb-4 uppercase tracking-widest">Adrenalina IM</h3>
+                        <p className="text-gray-600 mb-6">Cara anterolateral del muslo (tercio medio)</p>
+                        
+                        <div className="flex items-center justify-center gap-6 mb-6">
+                            <div className="text-right">
+                            <p className="text-sm font-bold text-gray-500 uppercase">Dosis</p>
+                            <p className="text-4xl font-extrabold text-gray-800">0.01 mg/kg</p>
+                            </div>
+                            <div className="h-12 w-1 bg-pink-200"></div>
+                            <div className="text-left">
+                            <p className="text-sm font-bold text-gray-500 uppercase">Sin Diluir</p>
+                            <p className="text-2xl font-bold text-gray-800">1:1000</p>
+                            </div>
+                        </div>
+
+                        {weight > 0 ? (
+                            <div className="bg-white p-6 rounded-xl shadow-inner border border-pink-100">
+                            <p className="text-lg font-medium text-gray-500 mb-1">Dosis Paciente ({weight} kg)</p>
+                            <p className="text-5xl font-black text-pink-600 mb-2">
+                                {(0.01 * parseFloat(weight)).toFixed(2)} mg
+                            </p>
+                            <p className="text-2xl font-bold text-gray-800 bg-pink-100 inline-block px-4 py-1 rounded">
+                                = {(0.01 * parseFloat(weight)).toFixed(2)} ml
+                            </p>
+                            <p className="text-xs text-gray-400 mt-2">(Ampolla 1mg/1ml)</p>
+                            </div>
+                        ) : (
+                            <div className="bg-gray-100 p-4 rounded-lg animate-pulse">
+                            Introduce peso para calcular volumen exacto
+                            </div>
+                        )}
+                        
+                        <p className="mt-6 text-sm text-red-500 font-bold">
+                            * Máximo 0.5 mg (0.5 ml) por dosis. Repetir cada 5-15 min si precisa.
+                        </p>
+                        </div>
+
+                        <div className="mt-8 grid grid-cols-2 gap-4 w-full max-w-2xl">
+                        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-gray-400">
+                            <span className="block text-xs font-bold text-gray-400 uppercase">Autoinyector</span>
+                            <span className="font-bold text-lg text-gray-800">150 mcg (0.15 mg)</span>
+                            <span className="block text-sm text-gray-500">10 - 25 kg</span>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-gray-800">
+                            <span className="block text-xs font-bold text-gray-400 uppercase">Autoinyector</span>
+                            <span className="font-bold text-lg text-gray-800">300 mcg (0.30 mg)</span>
+                            <span className="block text-sm text-gray-500">{'>'} 25 kg</span>
+                        </div>
+                        </div>
+                    </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'intubation',
+                meta: { title: 'Intubación (SRI)', icon: Tube, color: colors.intub },
+                render: () => (
+                    <Slide title="Secuencia Rápida Intubación" icon={Tube} color={colors.intub}>
+                        <div className="space-y-6">
+                            
+                            <div className="bg-blue-50 border-l-4 border-blue-800 p-4 rounded-r-lg mb-6">
+                                <h3 className="font-bold text-blue-900 text-lg">Protocolo SRI</h3>
+                                <p className="text-sm text-blue-800">Protección + Analgesia + Parálisis</p>
+                            </div>
+
+                            <DoseCard 
+                                key="atropina-sri"
+                                drug="PROTECCIÓN: Atropina"
+                                weight={weight}
+                                color={colors.intub}
+                                doseInfo={{ perKg: 0.02, text: "0.02 mg/kg", max: 1, maxText: "1 mg" }}
+                                concentrations={{ name: "Dilución", mgPerMl: 0.1 }}
+                                dilution={{ drugParts: 1, solventParts: 9 }}
+                                notes="Diluir 1cc Atropina + 9cc SSF. Resultado: 0.1 mg/ml."
+                            />
+
+                            <DoseCard 
+                                key="fentanilo-sri"
+                                drug="ANALGESIA: Fentanilo"
+                                weight={weight}
+                                color={colors.intub}
+                                unit="mcg"
+                                doseInfo={{ perKg: 2, text: "1 - 4 mcg/kg (Calc: 2 mcg/kg)", max: 100, maxText: "100 mcg" }}
+                                concentrations={{ name: "Dilución", mgPerMl: 10 }} // 10 mcg/ml
+                                dilution={{ drugParts: 1, solventParts: 4 }}
+                                notes="Diluir 1cc Fentanilo + 4cc SSF. Resultado: 10 mcg/ml."
+                            />
+
+                            <DoseCard 
+                                key="rocuronio-sri"
+                                drug="PARÁLISIS: Rocuronio"
+                                weight={weight}
+                                color={colors.intub}
+                                doseInfo={{ perKg: 0.6, text: "0.4 - 0.6 mg/kg (Calc: 0.6 mg/kg)", max: 100, maxText: "100 mg" }}
+                                concentrations={{ name: "Dilución", mgPerMl: 1 }}
+                                dilution={{ drugParts: 1, solventParts: 9 }}
+                                notes="Diluir 1cc Rocuronio + 9cc SSF. Resultado: 1 mg/ml."
+                            />
+                        </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'cpr',
+                meta: { title: 'RCP Avanzada', icon: Heart, color: colors.cpr },
+                render: () => (
+                    <Slide title="RCP Avanzada" icon={Heart} color={colors.cpr}>
+                    <div className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                        <DoseCard 
+                            key="adrenalina-rcp"
+                            drug="Adrenalina IV/IO"
+                            weight={weight}
+                            color={colors.cpr}
+                            doseInfo={{ perKg: 0.01, text: "0.01 mg/kg", max: 1, maxText: "1 mg" }}
+                            notes="DILUIR: 1cc adrenalina + 9cc SSF. (Queda 0.1mg/ml). Repetir c/3-5 min."
+                        />
+                        <DoseCard 
+                            key="amiodarona-rcp"
+                            drug="Amiodarona IV/IO"
+                            weight={weight}
+                            color={colors.cpr}
+                            doseInfo={{ perKg: 5, text: "5 mg/kg", max: 300, maxText: "300 mg" }}
+                            concentrations={{ name: "Ampolla", mgPerMl: 50 }}
+                            notes="Bolo directo en FV/TV sin pulso tras 3er choque."
+                        />
+                        </div>
+                        
+                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <h3 className="font-bold text-green-800 mb-2">Desfibrilación</h3>
+                        <div className="flex gap-4 items-center">
+                            <div className="bg-white px-4 py-2 rounded shadow text-center">
+                            <span className="block text-xs text-gray-500 uppercase">1º Choque</span>
+                            <span className="text-xl font-bold text-green-600">4 J/kg</span>
+                            {weight > 0 && <span className="block text-sm font-bold border-t mt-1 pt-1">{(4*parseFloat(weight)).toFixed(0)} J</span>}
+                            </div>
+                            <span className="text-gray-400">➜</span>
+                            <div className="bg-white px-4 py-2 rounded shadow text-center">
+                            <span className="block text-xs text-gray-500 uppercase">Siguientes</span>
+                            <span className="text-xl font-bold text-green-600">4 J/kg</span>
+                            {weight > 0 && <span className="block text-sm font-bold border-t mt-1 pt-1">{(4*parseFloat(weight)).toFixed(0)} J</span>}
+                            </div>
+                        </div>
+                        </div>
+
+                        <div className="bg-gray-100 p-4 rounded-lg text-sm text-gray-700">
+                        <strong>Secuencia Intubación:</strong>
+                        <ul className="list-disc pl-5 mt-1 space-y-1">
+                            <li><strong>Atropina:</strong> 0.02 mg/kg (Min 0.1 mg)</li>
+                            <li><strong>Fentanilo:</strong> 1-2 mcg/kg (Analgesia)</li>
+                            <li><strong>Rocuronio:</strong> 1 mg/kg (Parálisis)</li>
+                        </ul>
+                        </div>
+                    </div>
+                    </Slide>
+                )
+                },
+                {
+                id: 'resp',
+                meta: { title: 'Respiratorio', icon: Wind, color: colors.resp },
+                render: () => (
+                    <Slide title="Respiratorio" icon={Wind} color={colors.resp}>
+                    <div className="space-y-6">
+                        {/* Crisis Asmática */}
+                        <div className="bg-cyan-50 rounded-xl p-5 border border-cyan-200">
+                        <h3 className="text-xl font-bold text-cyan-900 mb-3 flex items-center gap-2">
+                            Crisis Asmática <span className="text-xs bg-cyan-200 px-2 py-1 rounded-full text-cyan-800">Salbutamol</span>
+                        </h3>
+                        
+                        <div className="bg-white p-4 rounded-lg shadow-sm mb-3">
+                            <p className="font-bold text-gray-700">Inhalador (MDI) con cámara</p>
+                            <div className="flex items-center gap-4 mt-2">
+                                <div className="bg-gray-100 p-2 rounded">
+                                Fórmula: <strong>Peso / 3</strong> = Pulsaciones
+                                </div>
+                                {weight > 0 && (
+                                <div className="text-cyan-600 font-bold text-xl">
+                                    ➜ {Math.max(5, Math.min(10, Math.round(parseFloat(weight)/3)))} puffs
+                                </div>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">Mínimo 5, Máximo 10 pulsaciones. Tanda de 3 dosis (c/20 min).</p>
+                        </div>
+                        </div>
+
+                        {/* Laringitis */}
+                        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                        <h3 className="text-xl font-bold text-gray-800 mb-3">Laringitis</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <DoseCard 
+                                key="dexametasona-oral"
+                                drug="Dexametasona Oral"
+                                weight={weight}
+                                color={colors.resp}
+                                doseInfo={{ perKg: 0.6, text: "0.6 mg/kg", max: 12, maxText: "12 mg" }}
+                                notes="Dosis única. Repetir a las 24h si precisa."
+                            />
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-bold text-gray-700">Adrenalina Nebulizada</h4>
+                                <p className="text-gray-600 mt-1">0.5 mg/kg (Max 5mg)</p>
+                                <p className="text-sm text-gray-500">Adrenalina 1:1000 + SSF hasta 3-5ml</p>
+                            </div>
+                        </div>
+                        </div>
+                        
+                        {/* Bronquiolitis */}
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <h3 className="text-md font-bold text-blue-900 mb-1">Bronquiolitis</h3>
+                        <p className="text-sm text-blue-800">Soporte: O2 (Gafas/OAF) + Lavados nasales. Adrenalina neb. solo si prueba terapéutica positiva.</p>
+                        </div>
+
+                    </div>
+                    </Slide>
+                )
+                }
+            ];
+
+            const handleMenuNavigation = (index) => {
+                setSlideIndex(index);
+                setIsMenuOpen(false);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 font-sans text-gray-900 flex flex-col items-center p-4 md:p-8">
+                
+                {slideIndex !== 0 && !isMenuOpen && (
+                    <div className="w-full max-w-4xl flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-md sticky top-0 z-50">
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setIsMenuOpen(true)}
+                            className="bg-gray-800 text-white p-2 rounded-lg hover:bg-gray-700 transition-colors flex gap-2 items-center"
+                        >
+                            <Grid size={20}/>
+                            <span className="hidden md:inline text-sm font-bold">Menú</span>
+                        </button>
+                        <span className="font-bold hidden md:block ml-2 text-gray-700">Urgencias Pediátricas</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <label className="text-sm font-bold text-gray-500 uppercase hidden sm:block">Peso (kg):</label>
+                        <input 
+                            type="number" 
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                            placeholder="0" 
+                            className="w-24 p-2 rounded border-2 border-blue-100 text-center font-bold text-lg focus:border-blue-500 outline-none"
+                        />
+                    </div>
+                    </div>
+                )}
+
+                <div className="w-full max-w-5xl flex-1 mb-8" style={{ minHeight: '600px' }}>
+                    {isMenuOpen ? (
+                    <MainMenu slides={slides} onNavigate={handleMenuNavigation} colors={colors} />
+                    ) : (
+                    slides[slideIndex].render()
+                    )}
+                </div>
+
+                {!isMenuOpen && (
+                    <div className="fixed bottom-0 left-0 w-full bg-white border-t p-4 flex justify-between md:justify-center items-center gap-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
+                    <button 
+                        onClick={() => setIsMenuOpen(true)}
+                        className="md:hidden p-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+                    >
+                        <Grid size={24} />
+                    </button>
+
+                    <div className="flex items-center gap-6">
+                        <button 
+                        onClick={() => setSlideIndex(Math.max(0, slideIndex - 1))}
+                        disabled={slideIndex === 0}
+                        className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 transition-colors"
+                        >
+                        <ChevronLeft size={24} />
+                        </button>
+                        
+                        <div className="text-sm font-medium text-gray-400 hidden md:block">
+                        {slideIndex} / {slides.length - 1}
+                        </div>
+
+                        <button 
+                        onClick={() => setSlideIndex(Math.min(slides.length - 1, slideIndex + 1))}
+                        disabled={slideIndex === slides.length - 1}
+                        className="p-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:bg-gray-300 transition-colors shadow-lg shadow-blue-200"
+                        >
+                        <ChevronRight size={24} />
+                        </button>
+                    </div>
+                    
+                    <div className="w-12 md:hidden"></div>
+                    </div>
+                )}
+
+                {!isMenuOpen && <div className="h-20"></div>}
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<UrgenciasApp />);
+    </script>
+</body>
+</html>
