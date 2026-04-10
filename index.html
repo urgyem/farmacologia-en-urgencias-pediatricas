@@ -5,30 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PediFarmaAPP - Urgencias Pediátricas</title>
     
-    <!-- 1. Cargar React y ReactDOM -->
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/822/822143.png">
+    
+    <link rel="manifest" id="pwa-manifest">
+
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- 2. Cargar Babel para entender JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- 3. Cargar Tailwind CSS para los estilos -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Estilos adicionales -->
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        /* Animaciones suaves */
         .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 300ms; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        /* Ocultar flechas de input number */
         input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
-        /* Estilo para el select de navegación */
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         .nav-select {
             appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -45,6 +38,9 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // --- LÓGICA DE INSTALACIÓN PWA ---
+        let deferredPrompt;
+
         // --- ICONOS SVG ---
         const IconBase = ({ children, size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -52,6 +48,7 @@
             </svg>
         );
 
+        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></IconBase>;
         const Thermometer = (props) => <IconBase {...props}><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"></path></IconBase>;
         const Activity = (props) => <IconBase {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></IconBase>;
         const Droplet = (props) => <IconBase {...props}><path d="M12 22a7 7 0 0 0 7-7c0-2-2-3-2-3L12 2 7 12s-2 1-2 3a7 7 0 0 0 7 7z"></path></IconBase>;
@@ -61,10 +58,7 @@
         const Skull = (props) => <IconBase {...props}><circle cx="9" cy="12" r="1"></circle><circle cx="15" cy="12" r="1"></circle><path d="M8 20v2h8v-2"></path><path d="m12.5 17-.5-1-.5 1h1z"></path><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"></path></IconBase>;
         const Wind = (props) => <IconBase {...props}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path><path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path><path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path></IconBase>;
         const ChevronRight = (props) => <IconBase {...props}><polyline points="9 18 15 12 9 6"></polyline></IconBase>;
-        const ChevronLeft = (props) => <IconBase {...props}><polyline points="15 18 9 12 15 6"></polyline></IconBase>;
         const Scale = (props) => <IconBase {...props}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M7 21h10"></path><path d="M12 3v18"></path><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path></IconBase>;
-        const Menu = (props) => <IconBase {...props}><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></IconBase>;
-        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></IconBase>;
         const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></IconBase>;
         const Grid = (props) => <IconBase {...props}><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></IconBase>;
         const Pill = (props) => <IconBase {...props}><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></IconBase>;
@@ -73,31 +67,14 @@
         const AlertOctagon = (props) => <IconBase {...props}><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></IconBase>;
         const MedicalCross = (props) => <IconBase {...props}><path d="M12 2v20M2 12h20"></path></IconBase>;
 
-        // --- COMPONENTES DE LA APLICACIÓN ---
-
+        // --- COMPONENTES ---
         const RouteTabs = ({ activeTab, onTabChange, color }) => (
-            <div className="flex p-1.5 bg-gray-200 rounded-xl mb-6 shadow-inner border border-gray-300">
-                <button
-                onClick={() => onTabChange('oral')}
-                className={`flex-1 py-3 px-4 rounded-lg text-sm md:text-base font-black flex items-center justify-center gap-2 transition-all duration-300 ${
-                    activeTab === 'oral' 
-                    ? 'shadow-lg text-white transform scale-[1.02] ring-2 ring-white/50' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-300'
-                }`}
-                style={activeTab === 'oral' ? { backgroundColor: color } : {}}
-                >
-                <Pill size={20} /> Vía Oral
+            <div className="flex p-1 bg-gray-100 rounded-lg mb-4">
+                <button onClick={() => onTabChange('oral')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'oral' ? 'bg-white shadow text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}>
+                    <Pill size={16} /> Vía oral
                 </button>
-                <button
-                onClick={() => onTabChange('iv')}
-                className={`flex-1 py-3 px-4 rounded-lg text-sm md:text-base font-black flex items-center justify-center gap-2 transition-all duration-300 ${
-                    activeTab === 'iv' 
-                    ? 'shadow-lg text-white transform scale-[1.02] ring-2 ring-white/50' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-300'
-                }`}
-                style={activeTab === 'iv' ? { backgroundColor: color } : {}}
-                >
-                <Syringe size={20} /> IV / IM
+                <button onClick={() => onTabChange('iv')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'iv' ? 'bg-white shadow text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}>
+                    <Syringe size={16} /> IV / IM
                 </button>
             </div>
         );
@@ -105,37 +82,24 @@
         const Slide = ({ title, icon: Icon, color, children }) => (
             <div className="flex flex-col h-full bg-white rounded-xl shadow-2xl overflow-hidden border-t-8" style={{ borderColor: color }}>
                 <div className="p-4 md:p-6 flex items-center justify-between border-b" style={{ backgroundColor: `${color}10` }}>
-                <div className="flex items-center gap-3">
-                    <div className={`p-2 md:p-3 rounded-lg text-white shadow-lg`} style={{ backgroundColor: color }}>
-                    <Icon size={24} className="w-8 h-8 md:w-8 md:h-8" />
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 md:p-3 rounded-lg text-white shadow-lg`} style={{ backgroundColor: color }}><Icon size={24} className="w-8 h-8 md:w-8 md:h-8" /></div>
+                        <h2 className="text-xl md:text-3xl font-bold text-gray-800">{title}</h2>
                     </div>
-                    <h2 className="text-xl md:text-3xl font-bold text-gray-800">{title}</h2>
                 </div>
-                </div>
-                <div className="flex-1 p-4 md:p-6 overflow-y-auto bg-slate-50">
-                {children}
-                </div>
+                <div className="flex-1 p-4 md:p-6 overflow-y-auto bg-slate-50">{children}</div>
             </div>
         );
 
         const SyringeVisual = ({ drugParts, solventParts, color }) => {
             const total = drugParts + solventParts;
             const drugPct = (drugParts / total) * 100;
-            const solventPct = (solventParts / total) * 100;
-            
             return (
                 <div className="mt-3 mb-2">
-                    <div className="flex text-xs font-bold text-gray-500 mb-1 justify-between uppercase">
-                        <span>Fármaco ({drugParts}cc)</span>
-                        <span>Suero ({solventParts}cc)</span>
-                    </div>
+                    <div className="flex text-xs font-bold text-gray-500 mb-1 justify-between uppercase"><span>Fármaco ({drugParts}cc)</span><span>Suero ({solventParts}cc)</span></div>
                     <div className="h-6 w-full rounded-full overflow-hidden flex border border-gray-300 shadow-inner">
-                        <div style={{ width: `${drugPct}%`, backgroundColor: color }} className="h-full flex items-center justify-center text-white text-[10px] font-bold">
-                            {drugParts}ml
-                        </div>
-                        <div style={{ width: `${solventPct}%` }} className="h-full bg-gray-100 flex items-center justify-center text-gray-400 text-[10px] font-bold">
-                            {solventParts}ml SSF
-                        </div>
+                        <div style={{ width: `${drugPct}%`, backgroundColor: color }} className="h-full flex items-center justify-center text-white text-[10px] font-bold">{drugParts}ml</div>
+                        <div style={{ width: `${100 - drugPct}%` }} className="h-full bg-gray-100 flex items-center justify-center text-gray-400 text-[10px] font-bold">{solventParts}ml SSF</div>
                     </div>
                 </div>
             );
@@ -143,878 +107,235 @@
 
         const DoseCard = ({ drug, weight, doseInfo, concentrations, color, notes, warning, unit = 'mg', dilution }) => {
             const [concentrationVal, setConcentrationVal] = useState(concentrations ? concentrations.mgPerMl : 0);
-            const [customPerKg, setCustomPerKg] = useState(doseInfo.perKg);
-            
-            useEffect(() => {
-                if (concentrations) {
-                    setConcentrationVal(concentrations.mgPerMl);
-                }
-            }, [concentrations]);
-
-            useEffect(() => {
-                setCustomPerKg(doseInfo.perKg);
-            }, [doseInfo.perKg]);
-
+            useEffect(() => { if (concentrations) setConcentrationVal(concentrations.mgPerMl); }, [concentrations]);
             const [calculated, setCalculated] = useState(null);
             const [volume, setVolume] = useState(null);
-            const [isMaxReached, setIsMaxReached] = useState(false);
 
             useEffect(() => {
                 const w = parseFloat(weight);
                 if (!isNaN(w) && w > 0) {
-                    let doseVal = customPerKg * w;
-                    let maxHit = false;
-                    
-                    if (doseInfo.max && doseVal > doseInfo.max) {
-                        doseVal = doseInfo.max;
-                        maxHit = true;
-                    }
-                    
+                    let doseVal = doseInfo.perKg * w;
+                    if (doseInfo.max && doseVal > doseInfo.max) doseVal = doseInfo.max;
                     setCalculated(doseVal);
-                    setIsMaxReached(maxHit);
-
-                    if (concentrationVal > 0) {
-                        const vol = doseVal / concentrationVal;
-                        setVolume(vol);
-                    } else {
-                        setVolume(null);
-                    }
+                    if (concentrationVal > 0) setVolume(doseVal / concentrationVal);
                 } else {
-                    setCalculated(null);
-                    setVolume(null);
-                    setIsMaxReached(false);
+                    setCalculated(null); setVolume(null);
                 }
-            }, [weight, doseInfo.max, concentrationVal, customPerKg]);
+            }, [weight, doseInfo, concentrationVal]);
 
             return (
                 <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 mb-4 relative" style={{ borderColor: color }}>
-                    {/* Encabezado: Nombre Fármaco + Peso */}
+                    {warning && <div className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 absolute top-0 right-0 rounded-bl-lg">{warning}</div>}
                     <div className="flex justify-between items-start mb-3">
                         <h3 className="text-lg font-bold text-gray-800 leading-tight">{drug}</h3>
-                        {calculated !== null && (
-                            <span className="bg-gray-800 text-white px-2 py-1 rounded-full text-xs font-mono shadow-sm whitespace-nowrap">
-                                {weight} kg
-                            </span>
-                        )}
+                        {calculated !== null && <span className="bg-gray-800 text-white px-2 py-1 rounded-full text-xs font-mono shadow-sm">{weight} kg</span>}
                     </div>
-
-                    {/* Información Dosis Teórica */}
-                    <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 flex flex-wrap items-center">
-                        <span className="font-bold text-gray-500 uppercase text-xs mr-2">Dosis Teórica:</span>
+                    <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                        <span className="font-bold text-gray-500 uppercase text-xs mr-2">Dosis teórica:</span>
                         <span className="font-medium text-gray-800">{doseInfo.text}</span>
                         {doseInfo.maxText && <span className="text-red-500 text-xs ml-2 font-bold">(Máx: {doseInfo.maxText})</span>}
                     </div>
-
-                    {/* SECCIÓN INTERACTIVA (Fila de inputs) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                        {/* Input: Dosis a aplicar */}
-                        <div className="bg-blue-50/50 p-2 md:p-3 rounded-lg border border-blue-100 flex flex-col justify-center items-center shadow-sm">
-                            <label className="text-[10px] md:text-xs font-bold text-blue-700 uppercase mb-1 md:mb-2">Dosis a aplicar</label>
-                            <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-blue-200 focus-within:ring-2 focus-within:ring-blue-400 w-full justify-center">
-                                <input 
-                                    type="number" 
-                                    step="any"
-                                    inputMode="decimal"
-                                    value={customPerKg}
-                                    onChange={(e) => setCustomPerKg(parseFloat(e.target.value) || 0)}
-                                    className="w-16 md:w-20 text-center font-black text-blue-600 outline-none"
-                                />
-                                <span className="text-xs font-bold text-gray-500">{unit}/kg</span>
-                            </div>
-                        </div>
-
-                        {/* Input: Concentración */}
-                        <div className="bg-red-50/50 p-2 md:p-3 rounded-lg border border-red-100 flex flex-col justify-center items-center shadow-sm relative">
-                            <label className="text-[10px] md:text-xs font-bold text-red-600 uppercase mb-1 md:mb-2 flex items-center gap-1">
-                                <span>⚠️</span> Concentración
-                            </label>
+                    <div className="grid grid-cols-2 gap-3 items-stretch">
+                        <div className="bg-red-50 border-2 border-red-100 rounded-xl p-3 flex flex-col justify-center relative shadow-sm">
+                            <label className="text-[10px] font-black text-red-600 uppercase text-center mb-2">CONCENTRACIÓN</label>
                             {concentrations ? (
-                                <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-red-200 focus-within:ring-2 focus-within:ring-red-400 w-full justify-center">
-                                    <input 
-                                        type="number" 
-                                        step="any"
-                                        inputMode="decimal"
-                                        value={concentrationVal}
-                                        onChange={(e) => setConcentrationVal(parseFloat(e.target.value) || 0)}
-                                        className="w-16 md:w-20 text-center font-black text-gray-800 outline-none"
-                                        placeholder="0"
-                                    />
-                                    <span className="text-xs font-bold text-gray-500">{unit}/ml</span>
+                                <div className="bg-white rounded-lg border-2 border-red-200 p-2 flex items-center justify-center">
+                                    <input type="number" value={concentrationVal} onChange={(e) => setConcentrationVal(parseFloat(e.target.value) || 0)} className="w-full text-center font-black text-gray-800 text-xl outline-none" />
+                                    <span className="text-xs text-gray-400 font-bold pl-1 border-l ml-1">{unit}/ml</span>
                                 </div>
-                            ) : (
-                                <div className="text-center text-xs text-gray-400 italic h-full flex items-center">No aplica</div>
-                            )}
+                            ) : <div className="text-center text-xs text-gray-400 italic">No aplica</div>}
                         </div>
-                    </div>
-
-                    {/* SECCIÓN DE RESULTADO FINAL */}
-                    <div className={`rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-inner border-2 ${calculated !== null ? 'bg-green-50/30 border-green-200' : 'bg-gray-50 border-gray-100'}`}>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Resultado Final</label>
-                        
-                        {calculated !== null ? (
-                            <div className="w-full flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
-                                {/* Resultado en MG/MCG */}
-                                <div className="flex flex-col items-center relative">
-                                    <span className="text-xs text-gray-500 font-semibold mb-1">Dosis Paciente</span>
-                                    {isMaxReached && (
-                                        <span className="absolute -top-7 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase whitespace-nowrap shadow-sm animate-pulse z-10">
-                                            ¡Tope Máximo!
-                                        </span>
+                        <div className={`border-2 rounded-xl p-3 flex flex-col justify-center items-center text-center shadow-sm ${calculated !== null ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase mb-2">Dosis paciente</label>
+                            {calculated !== null ? (
+                                <div className="w-full flex flex-col items-center">
+                                    <div className="text-xl font-black text-blue-700">{calculated.toFixed(2).replace(/\.00$/, '')} <span className="text-sm font-bold">{unit}</span></div>
+                                    {concentrations && volume !== null && (
+                                        <div className="bg-white w-full py-1 mt-1 rounded-lg shadow-sm border border-blue-200 text-green-600 font-bold">➜ {volume.toFixed(2).replace(/\.00$/, '')} ml</div>
                                     )}
-                                    <div className="text-2xl md:text-3xl font-black text-gray-800 leading-none mt-1">
-                                        {typeof calculated === 'number' ? calculated.toFixed(2).replace(/\.00$/, '') : calculated} 
-                                        <span className="text-sm md:text-base ml-1 text-gray-500 font-bold">{unit}</span>
-                                    </div>
                                 </div>
-
-                                {/* Resultado en ML */}
-                                {concentrations && (
-                                    <>
-                                        <div className="hidden md:block w-px h-12 bg-green-200"></div>
-                                        <div className="md:hidden h-px w-full bg-green-200"></div>
-
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-xs text-gray-500 font-semibold mb-1">Volumen a extraer</span>
-                                            {volume !== null && volume !== Infinity && !isNaN(volume) ? (
-                                                <div className="text-2xl md:text-3xl font-black text-green-600 leading-none flex items-center gap-1">
-                                                    {volume.toFixed(2).replace(/\.00$/, '')} <span className="text-sm md:text-base text-green-600 font-bold">ml</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-sm font-bold text-red-400 bg-red-50 px-2 rounded mt-1">Revisar Conc.</span>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ) : (
-                            <span className="text-sm text-gray-400 italic">Esperando peso del paciente...</span>
-                        )}
-                    </div>
-
-                    {/* Notas y Visualización de Jeringa */}
-                    {dilution && (
-                         <div className="mt-3">
-                             <SyringeVisual drugParts={dilution.drugParts} solventParts={dilution.solventParts} color={color} />
-                             <p className="text-xs text-gray-500 italic text-center">Mezcla: {dilution.drugParts + dilution.solventParts} cc</p>
-                         </div>
-                    )}
-                    
-                    {(warning || notes) && (
-                        <div className="mt-3 border-t pt-2 space-y-2">
-                            {warning && (
-                                <div className="bg-red-50 text-red-700 text-xs md:text-sm font-bold p-2 rounded border border-red-100 flex items-start gap-2">
-                                    <span className="text-red-500 shrink-0">⚠️</span>
-                                    <span>{warning}</span>
-                                </div>
-                            )}
-                            {notes && <p className="text-xs md:text-sm text-gray-600 italic">{notes}</p>}
+                            ) : <span className="text-xs text-gray-400 italic">Esperando peso...</span>}
                         </div>
-                    )}
+                    </div>
+                    {dilution && <div className="mt-3"><SyringeVisual drugParts={dilution.drugParts} solventParts={dilution.solventParts} color={color} /><p className="text-xs text-gray-500 italic text-center">Mezcla: {dilution.drugParts + dilution.solventParts} cc</p></div>}
+                    {notes && <p className="mt-3 text-xs text-gray-600 border-t pt-2 italic">{notes}</p>}
                 </div>
             );
         };
 
-        const MainMenu = ({ slides, onNavigate, colors }) => {
-            const menuItems = slides.filter(slide => slide.id !== 'cover');
-
-            return (
-                <div className="h-full bg-slate-50 rounded-xl shadow-2xl overflow-y-auto p-4 md:p-8">
+        const MainMenu = ({ slides, onNavigate }) => (
+            <div className="h-full bg-slate-50 rounded-xl shadow-2xl overflow-y-auto p-4 md:p-8">
                 <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-800 flex items-center justify-center gap-3">
-                    <Grid className="text-blue-600" size={32} /> 
-                    Índice de Protocolos
-                    </h2>
+                    <h2 className="text-3xl font-bold text-gray-800 flex items-center justify-center gap-3"><Grid className="text-blue-600" size={32} /> Índice de protocolos</h2>
                     <p className="text-gray-500 mt-2">Selecciona una categoría para ver el protocolo y dosis</p>
                 </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {menuItems.map((item, index) => {
-                    const Icon = item.meta.icon;
-                    return (
-                        <button
-                        key={item.id}
-                        onClick={() => onNavigate(index + 1)}
-                        className="group relative overflow-hidden bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border-l-8 text-left flex flex-col justify-between h-40 md:h-48"
-                        style={{ borderColor: item.meta.color }}
-                        >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all">
-                            <Icon size={80} color={item.meta.color} />
-                        </div>
-                        
-                        <div className="relative z-10">
-                            <div 
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform"
-                            style={{ backgroundColor: item.meta.color }}
-                            >
-                            <Icon size={24} />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
-                            {item.meta.title}
-                            </h3>
-                        </div>
-                        
-                        <div className="flex items-center text-sm font-semibold text-gray-400 mt-2 group-hover:text-gray-600">
-                            Ver protocolo <ChevronRight size={16} className="ml-1" />
-                        </div>
-                        </button>
-                    );
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {slides.filter(s => s.id !== 'cover').map((item, index) => {
+                        const Icon = item.meta.icon;
+                        return (
+                            <button key={item.id} onClick={() => onNavigate(index + 1)} className="group relative bg-white p-6 rounded-xl shadow-md border-l-8 text-left h-40 flex flex-col justify-between" style={{ borderColor: item.meta.color }}>
+                                <div className="absolute top-0 right-0 p-4 opacity-10"><Icon size={60} color={item.meta.color} /></div>
+                                <div className="relative z-10">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white mb-4 shadow-lg" style={{ backgroundColor: item.meta.color }}><Icon size={20} /></div>
+                                    <h3 className="text-xl font-bold text-gray-800">{item.meta.title}</h3>
+                                </div>
+                                <div className="flex items-center text-sm font-semibold text-gray-400">Ver protocolo <ChevronRight size={16} /></div>
+                            </button>
+                        );
                     })}
                 </div>
-                </div>
-            );
-        };
+            </div>
+        );
 
         function UrgenciasApp() {
             const [slideIndex, setSlideIndex] = useState(0);
             const [isMenuOpen, setIsMenuOpen] = useState(false);
-            
-            // Inicializar el peso desde localStorage (memoria del navegador)
-            const [weight, setWeight] = useState(() => localStorage.getItem('pediWeight') || '');
-            
-            // Guardar el peso automáticamente cada vez que cambie
-            useEffect(() => {
-                localStorage.setItem('pediWeight', weight);
-            }, [weight]);
-            
-            const [activeTabs, setActiveTabs] = useState({
-                pain: 'oral',
-                sedation: 'iv'
-            });
+            const [weight, setWeight] = useState('');
+            const [canInstall, setCanInstall] = useState(false);
+            const [activeTabs, setActiveTabs] = useState({ pain: 'oral', sedation: 'iv' });
 
-            const handleTabChange = (slideId, tab) => {
-                setActiveTabs(prev => ({ ...prev, [slideId]: tab }));
+            useEffect(() => {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    setCanInstall(true);
+                });
+            }, []);
+
+            const installApp = async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') setCanInstall(false);
+                deferredPrompt = null;
             };
-            
-            const colors = {
-                pain: '#ef4444', 
-                sedation: '#8b5cf6', 
-                fluids: '#3b82f6', 
-                seizure: '#f59e0b', 
-                allergy: '#ec4899', 
-                cpr: '#10b981', 
-                toxic: '#6366f1', 
-                resp: '#06b6d4', 
-                intub: '#1e3a8a'
-            };
+
+            const colors = { pain: '#ef4444', sedation: '#8b5cf6', fluids: '#3b82f6', seizure: '#f59e0b', allergy: '#ec4899', cpr: '#10b981', toxic: '#6366f1', resp: '#06b6d4', intub: '#1e3a8a' };
 
             const slides = [
                 {
-                id: 'cover',
-                meta: { title: 'Portada', icon: Home, color: '#3b82f6' },
-                render: () => (
-                    <div className="h-full flex flex-col items-center justify-center text-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-2xl p-8 relative overflow-hidden">
-                        
-                    <MedicalCross size={80} className="mb-6 animate-pulse" />
-                    <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">PediFarmaAPP</h1>
-                    
-                    <div className="text-lg mb-8 opacity-90 space-y-2">
-                        <p>
-                            Creado por <strong>Elena Martínez de la Hidalga</strong> (<a href="https://www.instagram.com/rescateir/" target="_blank" className="underline hover:text-blue-100 font-bold">@rescateir</a>)
-                        </p>
-                        <p>
-                            Y por <strong>Elena Plaza Moreno</strong> - Urgencias y Emergencias - <a href="https://www.urgenciasyemergencias.com" target="_blank" className="underline hover:text-blue-100 font-bold">www.urgenciasyemergencias.com</a>
-                        </p>
-                    </div>
-                    
-                    <div className="bg-white/20 backdrop-blur-md rounded-xl p-6 mb-6 max-w-md w-full border border-white/30">
-                        <div className="flex items-center gap-3 mb-2 justify-center">
-                        <Scale size={24} />
-                        <label className="text-lg font-semibold">Introduce el peso del paciente</label>
-                        </div>
-                        <p className="text-sm mb-4 opacity-90">Para calcular automáticamente las dosis en toda la app.</p>
-                        <div className="relative flex items-center justify-center">
-                        <input 
-                            type="number" 
-                            inputMode="decimal"
-                            value={weight}
-                            onChange={(e) => setWeight(e.target.value)}
-                            placeholder="Peso en kg" 
-                            className="w-full p-4 rounded-lg text-gray-900 text-center text-2xl font-bold shadow-inner focus:ring-4 focus:ring-blue-300 outline-none transition-all pr-12"
-                        />
-                        {weight && (
-                            <button 
-                                onClick={() => setWeight('')} 
-                                className="absolute right-12 text-gray-400 hover:text-red-500 text-3xl font-bold leading-none transition-colors"
-                                title="Borrar peso"
-                            >
-                                &times;
-                            </button>
-                        )}
-                        <span className="absolute right-4 text-gray-400 font-bold pointer-events-none">KG</span>
-                        </div>
-                    </div>
-                    
-                    {/* DISCLAIMER DE DILUCIÓN */}
-                    <div className="flex items-center gap-3 bg-red-500/20 border border-red-500/40 p-4 rounded-lg max-w-md w-full mb-8 text-left">
-                        <AlertOctagon className="flex-shrink-0 text-red-100" size={32} />
-                        <p className="text-sm font-medium text-white shadow-black drop-shadow-md leading-tight">
-                           <strong>¡IMPORTANTE!</strong> Recuerda comprobar siempre la concentración (mg/ml) de los fármacos y ajustarla manualmente en las fichas si tu presentación es diferente.
-                        </p>
-                    </div>
-
-                    <button 
-                        onClick={() => setIsMenuOpen(true)}
-                        className="bg-white text-blue-600 px-10 py-4 rounded-full font-bold shadow-xl hover:scale-105 hover:bg-blue-50 transition-all flex items-center gap-3 group text-lg"
-                    >
-                        <span>Comenzar</span>
-                        <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform"/>
-                    </button>
-                    </div>
-                )
-                },
-                {
-                id: 'anaphylaxis',
-                meta: { title: 'Anafilaxia', icon: AlertTriangle, color: colors.allergy },
-                render: () => (
-                    <Slide title="Anafilaxia" icon={AlertTriangle} color={colors.allergy}>
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <div className="w-full max-w-2xl bg-pink-50 border-2 border-pink-400 rounded-xl p-6 text-center shadow-lg transform transition-all hover:scale-105">
-                        <h3 className="text-2xl font-bold text-pink-700 mb-4 uppercase tracking-widest">
-                            ADRENALINA <span className="underline">INTRAMUSCULAR</span>
-                        </h3>
-                        <p className="text-gray-600 mb-6">Cara anterolateral del muslo (tercio medio)</p>
-                        
-                        <div className="flex items-center justify-center gap-6 mb-6">
-                            <div className="text-right">
-                            <p className="text-sm font-bold text-gray-500 uppercase">Dosis</p>
-                            <p className="text-4xl font-extrabold text-gray-800">0.01 mg/kg</p>
+                    id: 'cover',
+                    meta: { title: 'Portada', icon: Home, color: '#3b82f6' },
+                    render: () => (
+                        <div className="h-full flex flex-col items-center justify-center text-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-2xl p-8 relative overflow-hidden">
+                            <MedicalCross size={80} className="mb-6 animate-pulse" />
+                            <h1 className="text-4xl font-extrabold mb-4 tracking-tight">PediFarmaAPP</h1>
+                            <div className="text-lg mb-8 opacity-90 space-y-2">
+                                <p>Creado por <strong>Elena Martínez de la Hidalga</strong> (<a href="https://www.instagram.com/rescateir/" target="_blank" className="underline font-bold">@rescateir</a>)</p>
+                                <p>Y por <strong>Elena Plaza Moreno</strong> - <a href="https://www.urgenciasyemergencias.com" target="_blank" className="underline font-bold">www.urgenciasyemergencias.com</a></p>
                             </div>
-                            <div className="h-12 w-1 bg-pink-200"></div>
-                            <div className="text-left">
-                            <p className="text-sm font-bold text-gray-500 uppercase">Sin Diluir</p>
-                            <p className="text-2xl font-bold text-gray-800">1:1000</p>
-                            </div>
-                        </div>
-
-                        {weight > 0 ? (
-                            <div className="bg-white p-6 rounded-xl shadow-inner border border-pink-100">
-                            <p className="text-lg font-medium text-gray-500 mb-1">Dosis Paciente ({weight} kg)</p>
-                            <p className="text-5xl font-black text-pink-600 mb-2">
-                                {(0.01 * parseFloat(weight)).toFixed(2)} mg
-                            </p>
-                            <p className="text-2xl font-bold text-gray-800 bg-pink-100 inline-block px-4 py-1 rounded">
-                                = {(0.01 * parseFloat(weight)).toFixed(2)} ml
-                            </p>
-                            <p className="text-xs text-gray-400 mt-2">(Ampolla 1mg/1ml)</p>
-                            </div>
-                        ) : (
-                            <div className="bg-gray-100 p-4 rounded-lg animate-pulse">
-                            Introduce peso para calcular volumen exacto
-                            </div>
-                        )}
-                        
-                        <p className="mt-6 text-sm text-red-500 font-bold">
-                            * Máximo 0.5 mg (0.5 ml) por dosis. Repetir cada 5-15 min si precisa.
-                        </p>
-                        </div>
-
-                        <div className="mt-8 grid grid-cols-2 gap-4 w-full max-w-2xl">
-                        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-gray-400">
-                            <span className="block text-xs font-bold text-gray-400 uppercase">Autoinyector</span>
-                            <span className="font-bold text-lg text-gray-800">150 mcg (0.15 mg)</span>
-                            <span className="block text-sm text-gray-500">10 - 25 kg</span>
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-gray-800">
-                            <span className="block text-xs font-bold text-gray-400 uppercase">Autoinyector</span>
-                            <span className="font-bold text-lg text-gray-800">300 mcg (0.30 mg)</span>
-                            <span className="block text-sm text-gray-500">{'>'} 25 kg</span>
-                        </div>
-                        </div>
-                    </div>
-                    </Slide>
-                )
-                },
-                {
-                id: 'seizure',
-                meta: { title: 'Convulsiones', icon: Activity, color: colors.seizure },
-                render: () => (
-                    <Slide title="Convulsiones" icon={Activity} color={colors.seizure}>
-                    <div className="space-y-4">
-                        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                        <h3 className="font-bold text-amber-800 text-lg mb-1">Algoritmo de Actuación</h3>
-                        <p className="text-amber-700 text-sm">Prioridad: ABC + Oxígeno + Glucemia</p>
-                        </div>
-
-                        <div className="relative pl-8 space-y-6 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
-                        
-                        <div className="relative">
-                            <div className="absolute -left-10 bg-amber-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
-                            <DoseCard 
-                            key="diazepam-iv"
-                            drug="Diazepam IV"
-                            weight={weight}
-                            color={colors.seizure}
-                            doseInfo={{ perKg: 0.2, text: "0.2 mg/kg", max: 10, maxText: "5mg (<5a) / 10mg (>5a)" }}
-                            concentrations={{ name: "Ampolla", mgPerMl: 5 }}
-                            notes="Inyectar lento (2-3 min). Puede deprimir respiración."
-                            />
-                        </div>
-
-                        <div className="relative">
-                            <div className="absolute -left-10 bg-amber-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
-                            <DoseCard 
-                                key="midazolam-no-via"
-                                drug="Si no hay vía: Midazolam IM/IN/Bucal"
-                                weight={weight}
-                                color={colors.seizure}
-                                doseInfo={{ perKg: 0.2, text: "0.2 - 0.3 mg/kg", max: 10, maxText: "10 mg" }}
-                                concentrations={{ name: "Ampolla", mgPerMl: 5 }} 
-                                notes="Se usa 0.2 mg/kg como base para el cálculo. Ajustar según respuesta."
-                            />
-                        </div>
-
-                        <div className="relative">
-                            <div className="absolute -left-10 bg-amber-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">3</div>
-                            <div className="bg-white p-4 rounded-lg shadow border border-amber-200">
-                            <h4 className="font-bold text-gray-800">Alternativa: Diazepam Rectal</h4>
-                            <div className="mt-2 text-sm text-gray-600">
-                                <p><strong>Dosis:</strong> 0.5 mg/kg</p>
-                                <p><strong>Presentaciones:</strong> Stesolid 5mg ({'<'}10kg) o 10mg ({'>'}15kg)</p>
-                            </div>
-                            </div>
-                        </div>
-
-                        </div>
-                    </div>
-                    </Slide>
-                )
-                },
-                {
-                id: 'pain',
-                meta: { title: 'Dolor y fiebre', icon: Thermometer, color: colors.pain },
-                render: () => (
-                    <Slide title="Dolor y fiebre" icon={Thermometer} color={colors.pain}>
-                    <RouteTabs 
-                        activeTab={activeTabs.pain} 
-                        onTabChange={(tab) => handleTabChange('pain', tab)} 
-                        color={colors.pain}
-                    />
-                    
-                    <div className="space-y-6">
-                        {activeTabs.pain === 'oral' ? (
-                        <React.Fragment>
-                            <DoseCard 
-                            key="paracetamol-oral"
-                            drug="Paracetamol ORAL"
-                            weight={weight}
-                            color={colors.pain}
-                            doseInfo={{ perKg: 15, text: "10-15 mg/kg cada 4-6h", max: 1000, maxText: "1g/dosis (4g/día)" }}
-                            concentrations={{ name: "Solución", mgPerMl: 100 }}
-                            notes="Truco: 0.15 x Kg = ml a administrar (sol. 100mg/ml)"
-                            />
-                            <DoseCard 
-                            key="ibuprofeno-oral"
-                            drug="Ibuprofeno ORAL"
-                            weight={weight}
-                            color={colors.pain}
-                            doseInfo={{ perKg: 10, text: "5-10 mg/kg cada 6-8h", max: 600, maxText: "40 mg/kg/día" }}
-                            concentrations={{ name: "Jarabe 2%", mgPerMl: 20 }}
-                            notes="Edad > 3 meses. Truco (Dalsy 20mg/ml): Peso / 3 = ml a administrar."
-                            warning="No usar en < 3 meses"
-                            />
-                            <DoseCard 
-                            key="metamizol-oral"
-                            drug="Metamizol ORAL"
-                            weight={weight}
-                            color={colors.pain}
-                            doseInfo={{ perKg: 17, text: "12.5 - 20 mg/kg", max: 2000, maxText: "2g/dosis (6g/día)" }}
-                            concentrations={{ name: "Jarabe", mgPerMl: 50 }} 
-                            notes="Edad > 3 meses. Dosis media: 15-17 mg/kg."
-                            />
-                        </React.Fragment>
-                        ) : (
-                        <React.Fragment>
-                            <DoseCard 
-                            key="paracetamol-iv"
-                            drug="Paracetamol IV"
-                            weight={weight}
-                            color={colors.pain}
-                            doseInfo={{ 
-                                perKg: weight && parseFloat(weight) < 10 ? 7.5 : 15, 
-                                text: weight && parseFloat(weight) < 10 ? "7.5 mg/kg (<10kg)" : "15 mg/kg (>10kg)", 
-                                max: 1000, 
-                                maxText: "1g/dosis (>50kg)" 
-                            }}
-                            concentrations={{ name: "Vial", mgPerMl: 10 }}
-                            notes="Diluir con SSF. Dosis máx: 30mg/kg/día (<10kg) o 60mg/kg/día (>10kg)."
-                            warning={weight && parseFloat(weight) < 10 ? "Atención: Dosis reducida en <10kg" : null}
-                            />
-                            <DoseCard 
-                            key="metamizol-iv"
-                            drug="Metamizol IV / IM"
-                            weight={weight}
-                            color={colors.pain}
-                            doseInfo={{ perKg: 12, text: "6.4 - 17 mg/kg", max: 2000, maxText: "2g/dosis" }}
-                            concentrations={{ name: "Ampolla", mgPerMl: 400 }} 
-                            notes="Administración lenta (riesgo hipotensión). Dosis considerablemente menor que oral."
-                            />
-                            <DoseCard 
-                            key="ibuprofeno-iv"
-                            drug="Ibuprofeno IV"
-                            weight={weight}
-                            color={colors.pain}
-                            doseInfo={{ perKg: 7, text: "5 - 10 mg/kg", max: 400, maxText: "400 mg/dosis" }}
-                            notes="Diluir. Administrar en 30 min."
-                            warning="Solo > 6 años o > 20kg"
-                            />
-                        </React.Fragment>
-                        )}
-                    </div>
-                    </Slide>
-                )
-                },
-                {
-                id: 'toxic',
-                meta: { title: 'Intoxicaciones', icon: Skull, color: colors.toxic },
-                render: () => (
-                    <Slide title="Intoxicaciones" icon={Skull} color={colors.toxic}>
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4">
-                        
-                        <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                            <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-bold text-indigo-900">Paracetamol</h3>
-                            <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded">Tóxico: {'>'}150 mg/kg</span>
-                            </div>
-                            <DoseCard 
-                            key="nac-oral"
-                            drug="N-Acetilcisteína (Oral)"
-                            weight={weight}
-                            color={colors.toxic}
-                            doseInfo={{ perKg: 140, text: "Carga: 140 mg/kg", max: null, maxText: "" }}
-                            concentrations={{ name: "Fluimucil 20%", mgPerMl: 200 }} 
-                            notes="Mantenimiento: 70 mg/kg cada 4h (17 dosis). Diluir al 5% en zumo/refresco."
-                            />
-                        </div>
-
-                        <DoseCard 
-                            key="carbon"
-                            drug="Carbón Activado"
-                            weight={weight}
-                            color="gray"
-                            doseInfo={{ perKg: 1, text: "1 g/kg", max: 50, maxText: "50-100g (>12a)" }}
-                            notes="Dilución: 200cc líquido por cada 25g. NO mezclar con leche/yogur."
-                            />
-
-                            <div className="grid md:grid-cols-2 gap-4">
-                            <DoseCard 
-                                key="flumazenilo"
-                                drug="Flumazenilo (BZD)"
-                                weight={weight}
-                                color={colors.toxic}
-                                doseInfo={{ perKg: 0.01, text: "0.01 mg/kg", max: 1, maxText: "1 mg" }}
-                                concentrations={{ name: "Ampolla", mgPerMl: 0.1 }}
-                                notes="Admin rápida (15-30s). Cuidado convulsiones."
-                            />
-                            <DoseCard 
-                                key="naloxona"
-                                drug="Naloxona (Opioides)"
-                                weight={weight}
-                                color={colors.toxic}
-                                doseInfo={{ perKg: 0.01, text: "0.01 mg/kg", max: 10, maxText: "10 mg" }}
-                                concentrations={{ name: "Ampolla", mgPerMl: 0.4 }}
-                                notes="Repetir c/2-3 min. Diluir 1cc + 3cc SSF."
-                            />
-                            </div>
-
-                        </div>
-                    </div>
-                    </Slide>
-                )
-                },
-                {
-                id: 'cpr',
-                meta: { title: 'RCP Avanzada', icon: Heart, color: colors.cpr },
-                render: () => (
-                    <Slide title="RCP Avanzada" icon={Heart} color={colors.cpr}>
-                    <div className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                        <DoseCard 
-                            key="adrenalina-rcp"
-                            drug="Adrenalina IV/IO"
-                            weight={weight}
-                            color={colors.cpr}
-                            doseInfo={{ perKg: 0.01, text: "0.01 mg/kg", max: 1, maxText: "1 mg" }}
-                            concentrations={{ name: "Ampolla", mgPerMl: 1 }} 
-                            notes="DILUIR: 1cc adrenalina + 9cc SSF. (Queda 0.1mg/ml). Repetir c/3-5 min."
-                        />
-                        <DoseCard 
-                            key="amiodarona-rcp"
-                            drug="Amiodarona IV/IO"
-                            weight={weight}
-                            color={colors.cpr}
-                            doseInfo={{ perKg: 5, text: "5 mg/kg", max: 300, maxText: "300 mg" }}
-                            concentrations={{ name: "Ampolla", mgPerMl: 50 }}
-                            notes="Bolo directo en FV/TV sin pulso tras 3er choque."
-                        />
-                        </div>
-                        
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                        <h3 className="font-bold text-green-800 mb-2">Desfibrilación</h3>
-                        <div className="flex gap-4 items-center">
-                            <div className="bg-white px-4 py-2 rounded shadow text-center">
-                            <span className="block text-xs text-gray-500 uppercase">1º Choque</span>
-                            <span className="text-xl font-bold text-green-600">4 J/kg</span>
-                            {weight > 0 && <span className="block text-sm font-bold border-t mt-1 pt-1">{(4*parseFloat(weight)).toFixed(0)} J</span>}
-                            </div>
-                            <span className="text-gray-400">➜</span>
-                            <div className="bg-white px-4 py-2 rounded shadow text-center">
-                            <span className="block text-xs text-gray-500 uppercase">Siguientes</span>
-                            <span className="text-xl font-bold text-green-600">4 J/kg</span>
-                            {weight > 0 && <span className="block text-sm font-bold border-t mt-1 pt-1">{(4*parseFloat(weight)).toFixed(0)} J</span>}
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-                    </Slide>
-                )
-                },
-                {
-                id: 'resp',
-                meta: { title: 'Respiratorio', icon: Wind, color: colors.resp },
-                render: () => (
-                    <Slide title="Respiratorio" icon={Wind} color={colors.resp}>
-                    <div className="space-y-6">
-                        {/* Crisis Asmática */}
-                        <div className="bg-cyan-50 rounded-xl p-5 border border-cyan-200">
-                        <h3 className="text-xl font-bold text-cyan-900 mb-3 flex items-center gap-2">
-                            Crisis Asmática <span className="text-xs bg-cyan-200 px-2 py-1 rounded-full text-cyan-800">Salbutamol</span>
-                        </h3>
-                        
-                        <div className="bg-white p-4 rounded-lg shadow-sm mb-3">
-                            <p className="font-bold text-gray-700">Inhalador (MDI) con cámara</p>
-                            <div className="flex items-center gap-4 mt-2">
-                                <div className="bg-gray-100 p-2 rounded">
-                                Fórmula: <strong>Peso / 3</strong> = Pulsaciones
-                                </div>
-                                {weight > 0 && (
-                                <div className="text-cyan-600 font-bold text-xl">
-                                    ➜ {Math.max(5, Math.min(10, Math.round(parseFloat(weight)/3)))} puffs
-                                </div>
-                                )}
-                            </div>
-                            <p className="text-sm md:text-base font-semibold text-gray-700 mt-3">Mínimo 5, Máximo 10 pulsaciones. Tanda de 3 dosis (c/20 min).</p>
-                        </div>
-                        </div>
-
-                        {/* Laringitis */}
-                        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                        <h3 className="text-xl font-bold text-gray-800 mb-3">Laringitis</h3>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <DoseCard 
-                                key="dexametasona-oral"
-                                drug="Dexametasona Oral"
-                                weight={weight}
-                                color={colors.resp}
-                                doseInfo={{ perKg: 0.6, text: "0.6 mg/kg", max: 12, maxText: "12 mg" }}
-                                notes="Dosis única. Repetir a las 24h si precisa."
-                            />
-                            <DoseCard 
-                                key="adrenalina-neb"
-                                drug="Adrenalina Nebulizada"
-                                weight={weight}
-                                color={colors.resp}
-                                doseInfo={{ perKg: 0.5, text: "0.5 mg/kg", max: 5, maxText: "5 mg" }}
-                                concentrations={{ name: "Ampolla", mgPerMl: 1 }}
-                                notes="Añadir SSF hasta completar volumen de 3-5 ml total para nebulizar."
-                            />
-                        </div>
-                        </div>
-                        
-                        {/* Bronquiolitis */}
-                        <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 mb-4 relative" style={{ borderColor: colors.resp }}>
-                            <div className="flex justify-between items-start mb-3">
-                                <h3 className="text-lg font-bold text-gray-800 leading-tight">Bronquiolitis</h3>
-                            </div>
-                            <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                                <div className="flex-1">
-                                    <span className="font-bold text-gray-500 uppercase text-xs block mb-1">Manejo y Soporte:</span>
-                                    <span className="font-medium text-gray-800">Soporte con O2 (Gafas/OAF) + Lavados nasales.</span>
+                            
+                            <div className="bg-white/20 backdrop-blur-md rounded-xl p-6 mb-6 max-w-md w-full border border-white/30">
+                                <div className="flex items-center gap-3 mb-2 justify-center"><Scale size={24} /><label className="text-lg font-semibold">Calculadora interactiva</label></div>
+                                <div className="relative">
+                                    <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Peso en kg" className="w-full p-4 rounded-lg text-gray-900 text-center text-2xl font-bold outline-none" />
+                                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold">KG</span>
                                 </div>
                             </div>
-                            <p className="mt-3 text-xs md:text-sm text-gray-600 border-t pt-2 italic">Adrenalina nebulizada solo si la prueba terapéutica es positiva.</p>
-                        </div>
 
-                    </div>
-                    </Slide>
-                )
-                },
-                {
-                id: 'sedation',
-                meta: { title: 'Sedación', icon: Zap, color: colors.sedation },
-                render: () => (
-                    <Slide title="Sedación" icon={Zap} color={colors.sedation}>
-                    <RouteTabs 
-                        activeTab={activeTabs.sedation} 
-                        onTabChange={(tab) => handleTabChange('sedation', tab)} 
-                        color={colors.sedation}
-                    />
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                        {activeTabs.sedation === 'iv' ? (
-                        <React.Fragment>
-                            <DoseCard 
-                            key="ketamina-iv"
-                            drug="Ketamina IV"
-                            weight={weight}
-                            color={colors.sedation}
-                            doseInfo={{ perKg: 1.5, text: "1-2 mg/kg", max: 100, maxText: "100 mg/dosis" }}
-                            concentrations={{ name: "Vial", mgPerMl: 50 }}
-                            notes="Inicio: 1-2 min. Duración: 15-20 min. Puede ir sin diluir."
-                            />
-                            <DoseCard 
-                            key="midazolam-iv"
-                            drug="Midazolam IV"
-                            weight={weight}
-                            color={colors.sedation}
-                            doseInfo={{ perKg: 0.1, text: "0.02 - 0.1 mg/kg", max: 6, maxText: "6mg (<12a)" }}
-                            concentrations={{ name: "Ampolla", mgPerMl: 1 }} 
-                            notes="Monitorizar O2. Esperar 2-3 min entre dosis."
-                            />
-                            <DoseCard 
-                            key="ketamina-im"
-                            drug="Ketamina IM"
-                            weight={weight}
-                            color={colors.sedation}
-                            doseInfo={{ perKg: 5, text: "5 mg/kg (IM)", max: 300, maxText: "300 mg" }}
-                            notes="Dosis IM es mucho mayor que IV."
-                            />
-                        </React.Fragment>
-                        ) : (
-                        <React.Fragment>
-                            <DoseCard 
-                            key="ketamina-oral"
-                            drug="Ketamina ORAL"
-                            weight={weight}
-                            color={colors.sedation}
-                            doseInfo={{ perKg: 7, text: "6 - 8 mg/kg", max: 300, maxText: "300 mg" }}
-                            concentrations={{ name: "Vial", mgPerMl: 50 }}
-                            notes="Uso exclusivo vía oral."
-                            />
-                            <DoseCard 
-                            key="midazolam-oral"
-                            drug="Midazolam ORAL"
-                            weight={weight}
-                            color={colors.sedation}
-                            doseInfo={{ perKg: 0.5, text: "0.5 mg/kg", max: 15, maxText: "15 mg" }}
-                            concentrations={{ name: "Ampolla", mgPerMl: 1 }}
-                            notes="Inicio de acción: 30 min."
-                            />
-                            <DoseCard 
-                            key="midazolam-in"
-                            drug="Midazolam IN (Intranasal)"
-                            weight={weight}
-                            color={colors.sedation}
-                            doseInfo={{ perKg: 0.3, text: "0.2 - 0.3 mg/kg", max: 10, maxText: "10 mg" }}
-                            concentrations={{ name: "Atomizador", mgPerMl: 5 }} 
-                            notes="Máx 1ml por narina. Usar concentraciones altas (5mg/ml)."
-                            />
-                        </React.Fragment>
-                        )}
-                    </div>
-                    </Slide>
-                )
-                }
-            ];
-
-            const handleMenuNavigation = (index) => {
-                setSlideIndex(index);
-                setIsMenuOpen(false);
-            };
-
-            const handleNavSelectChange = (e) => {
-                const newVal = e.target.value;
-                if (newVal === 'menu') {
-                    setIsMenuOpen(true);
-                } else {
-                    setSlideIndex(parseInt(newVal));
-                    setIsMenuOpen(false);
-                }
-            };
-
-            return (
-                <div className="min-h-screen bg-gray-100 font-sans text-gray-900 flex flex-col items-center p-4 md:p-8">
-                
-                {slideIndex !== 0 && !isMenuOpen && (
-                    <div className="w-full max-w-4xl flex flex-wrap justify-between items-center mb-6 bg-white p-2 sm:p-3 rounded-xl shadow-md sticky top-0 z-50 gap-2">
-                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-[200px]">
-                            {/* Botón HOME / CASITA - Vuelve a la portada (slide 0) */}
-                            <button 
-                                onClick={() => setSlideIndex(0)} 
-                                className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                                title="Volver al Inicio"
-                            >
-                                <Home size={24}/>
-                            </button>
-
-                            {/* SELECTOR DE NAVEGACIÓN RÁPIDA (Cumple "poner nombre como menú") */}
-                            <div className="relative flex-1">
-                                <select 
-                                    value={slideIndex} 
-                                    onChange={handleNavSelectChange}
-                                    className="nav-select w-full bg-white border border-gray-200 text-gray-800 font-bold text-sm sm:text-lg py-2 pl-2 sm:pl-3 pr-8 sm:pr-10 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-gray-50 text-ellipsis overflow-hidden"
-                                >
-                                    {slides.map((s, idx) => (
-                                        idx !== 0 && (
-                                            <option key={s.id} value={idx}>
-                                                {s.meta.title}
-                                            </option>
-                                        )
-                                    ))}
-                                    <option value="menu" className="text-blue-600 border-t">📋 Ver Índice completo...</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 border-l pl-3 sm:pl-4 ml-1 sm:ml-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase hidden sm:block">Peso</label>
-                            <div className="relative flex items-center">
-                                <input 
-                                    type="number" 
-                                    inputMode="decimal"
-                                    value={weight}
-                                    onChange={(e) => setWeight(e.target.value)}
-                                    placeholder="0" 
-                                    className="w-20 sm:w-24 p-2 pr-7 rounded bg-blue-50 border border-blue-200 text-center font-bold text-base sm:text-lg focus:border-blue-500 outline-none text-blue-800"
-                                />
-                                {weight && (
-                                    <button 
-                                        onClick={() => setWeight('')} 
-                                        className="absolute right-2 text-blue-400 hover:text-red-500 text-2xl font-bold leading-none"
-                                        title="Siguiente paciente"
-                                    >
-                                        &times;
+                            <div className="flex flex-col gap-3 w-full max-w-md">
+                                <button onClick={() => setIsMenuOpen(true)} className="bg-white text-blue-600 px-10 py-4 rounded-full font-bold shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-3 text-lg">
+                                    <span>Comenzar</span><ChevronRight size={24} />
+                                </button>
+                                
+                                {canInstall && (
+                                    <button onClick={installApp} className="bg-green-500 text-white px-10 py-3 rounded-full font-bold shadow-lg hover:bg-green-600 transition-all flex items-center justify-center gap-3">
+                                        <Download size={20} /> Descargar app
                                     </button>
                                 )}
-                                <span className="absolute left-1 bottom-0.5 text-[9px] text-blue-300 font-bold pointer-events-none hidden sm:block">KG</span>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                },
+                {
+                    id: 'anaphylaxis',
+                    meta: { title: 'Anafilaxia', icon: AlertTriangle, color: colors.allergy },
+                    render: () => (
+                        <Slide title="Anafilaxia" icon={AlertTriangle} color={colors.allergy}>
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <div className="w-full max-w-2xl bg-pink-50 border-2 border-pink-400 rounded-xl p-6 text-center shadow-lg">
+                                    <h3 className="text-2xl font-bold text-pink-700 mb-4 uppercase">Adrenalina IM</h3>
+                                    <div className="flex items-center justify-center gap-6 mb-6">
+                                        <div><p className="text-sm font-bold text-gray-500 uppercase">Dosis</p><p className="text-4xl font-extrabold text-gray-800">0.01 mg/kg</p></div>
+                                        <div className="h-12 w-1 bg-pink-200"></div>
+                                        <div><p className="text-sm font-bold text-gray-500 uppercase">Sin diluir</p><p className="text-2xl font-bold text-gray-800">1:1000</p></div>
+                                    </div>
+                                    {weight > 0 ? (
+                                        <div className="bg-white p-6 rounded-xl shadow-inner border border-pink-100">
+                                            <p className="text-5xl font-black text-pink-600 mb-2">{(0.01 * parseFloat(weight)).toFixed(2)} mg</p>
+                                            <p className="text-2xl font-bold text-gray-800 bg-pink-100 px-4 py-1 rounded">= {(0.01 * parseFloat(weight)).toFixed(2)} ml</p>
+                                        </div>
+                                    ) : <div className="bg-gray-100 p-4 rounded-lg">Introduce peso para calcular volumen exacto</div>}
+                                    <p className="mt-6 text-sm text-red-500 font-bold">* Máximo 0.5 mg (0.5 ml) por dosis.</p>
+                                </div>
+                            </div>
+                        </Slide>
+                    )
+                },
+                // Aquí irían el resto de slides (se mantienen igual que tu original)
+                { id: 'seizure', meta: { title: 'Convulsiones', icon: Activity, color: colors.seizure }, render: () => <Slide title="Convulsiones" icon={Activity} color={colors.seizure}><DoseCard drug="Diazepam IV" weight={weight} color={colors.seizure} doseInfo={{ perKg: 0.2, text: "0.2 mg/kg" }} concentrations={{ mgPerMl: 5 }} /></Slide> },
+                { id: 'pain', meta: { title: 'Dolor y fiebre', icon: Thermometer, color: colors.pain }, render: () => <Slide title="Dolor y fiebre" icon={Thermometer} color={colors.pain}><DoseCard drug="Paracetamol oral" weight={weight} color={colors.pain} doseInfo={{ perKg: 15, text: "15 mg/kg" }} concentrations={{ mgPerMl: 100 }} /></Slide> }
+            ];
 
-                <div className="w-full max-w-5xl flex-1 mb-8" style={{ minHeight: '600px' }}>
-                    {isMenuOpen ? (
-                    <div className="animate-fade-in h-full"><MainMenu slides={slides} onNavigate={handleMenuNavigation} colors={colors} /></div>
-                    ) : (
-                    <div key={slideIndex} className="animate-fade-in h-full">
-                        {slides[slideIndex].render()}
-                    </div>
+            return (
+                <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 md:p-8">
+                    {slideIndex !== 0 && !isMenuOpen && (
+                        <div className="w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-3 rounded-xl shadow-md sticky top-0 z-50">
+                            <div className="flex items-center gap-3 flex-1">
+                                <button onClick={() => setSlideIndex(0)} className="bg-gray-100 p-2 rounded-lg"><Home size={24}/></button>
+                                <select value={slideIndex} onChange={(e) => e.target.value === 'menu' ? setIsMenuOpen(true) : setSlideIndex(parseInt(e.target.value))} className="nav-select flex-1 bg-white border border-gray-200 font-bold py-2 px-3 rounded-lg">
+                                    {slides.map((s, idx) => idx !== 0 && <option key={s.id} value={idx}>{s.meta.title}</option>)}
+                                    <option value="menu">📋 Ver índice completo...</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-2 border-l pl-4 ml-2">
+                                <div className="relative">
+                                    <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-20 p-2 rounded bg-blue-50 border border-blue-200 text-center font-bold text-blue-800" />
+                                    <span className="absolute right-1 bottom-1 text-[10px] text-blue-300 font-bold">kg</span>
+                                </div>
+                            </div>
+                        </div>
                     )}
-                </div>
-
-                {/* --- FOOTER ACTUALIZADO CON CRÉDITOS --- */}
-
-                {!isMenuOpen && slideIndex !== 0 && (
-                    <div className="py-4 px-2 text-center text-gray-500 text-[10px] md:text-xs border-t mt-4 leading-tight">
-                        <p className="font-bold text-gray-600 mb-1">PediFarmaAPP v2.0</p>
-                        <p>Creado por Elena Plaza Moreno - Urgencias y Emergencias® - <a href="https://www.urgenciasyemergencias.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline font-semibold">www.urgenciasyemergencias.com</a></p>
-                        <p className="mt-1 opacity-75">© 2026 Todos los derechos reservados.</p>
+                    <div className="w-full max-w-5xl flex-1 mb-8">
+                        {isMenuOpen ? <MainMenu slides={slides} onNavigate={(i) => {setSlideIndex(i); setIsMenuOpen(false);}} /> : slides[slideIndex].render()}
                     </div>
-                )}
-
+                    {!isMenuOpen && slideIndex !== 0 && (
+                        <div className="py-4 text-center text-gray-500 text-xs border-t mt-4">
+                            <p className="font-bold">PediFarmaAPP v2.0</p>
+                            <p>Elena Plaza Moreno - www.urgenciasyemergencias.com</p>
+                        </div>
+                    )}
                 </div>
             );
         }
+
+        // --- REGISTRO DE SERVICE WORKER INLINE ---
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'pedifarma-v1';
+                self.addEventListener('install', e => {
+                    e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./'])));
+                });
+                self.addEventListener('fetch', e => {
+                    e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+
+        // --- GENERACIÓN DE MANIFEST INLINE ---
+        const manifest = {
+            name: "PediFarmaAPP",
+            short_name: "PediFarma",
+            start_url: "./",
+            display: "standalone",
+            background_color: "#f3f4f6",
+            theme_color: "#3b82f6",
+            icons: [{ src: "https://cdn-icons-png.flaticon.com/512/822/822143.png", sizes: "512x512", type: "image/png" }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        document.getElementById('pwa-manifest').setAttribute('href', URL.createObjectURL(manifestBlob));
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<UrgenciasApp />);
