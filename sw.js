@@ -1,7 +1,7 @@
-const CACHE = 'pedifarma-v1';
+const CACHE = 'pedifarma-v2';
 
 const APP_SHELL = [
-  './PediFarmaAPP.html',
+  './index.html',
   './manifest.json',
   './icon.svg'
 ];

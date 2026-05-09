@@ -2,7 +2,7 @@
   "name": "PediFarmaAPP - Urgencias Pediátricas",
   "short_name": "PediFarmaAPP",
   "description": "Calculadora de dosis pediátricas para urgencias y emergencias",
-  "start_url": "./PediFarmaAPP.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#1e3a8a",
