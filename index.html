@@ -191,7 +191,7 @@
                 if (concentrations) {
                     setConcentrationVal(concentrations.mgPerMl);
                 }
-            }, [concentrations]);
+            }, [concentrations?.mgPerMl]);
 
             const [calculated, setCalculated] = useState(null);
             const [volume, setVolume] = useState(null);
