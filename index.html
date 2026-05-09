@@ -39,7 +39,7 @@
         @media print {
             .no-print { display: none !important; }
             .print-sheet { display: block !important; }
-            body { background: white !important; padding: 0 !important; }
+            body, #root, #root > div { background: white !important; padding: 0 !important; margin: 0 !important; }
         }
         /* Estilo para el select de navegación */
         .nav-select {
@@ -340,7 +340,7 @@
                 { title:'ANAFILAXIA', color:'#ec4899', drugs:[
                     { name:'Adrenalina IM', formula:'0.01 mg/kg', route:'IM cara ant. muslo',
                       concKey:null, defaultConc:1, dose:fmt(d(0.01,0.5)), unit:'mg',
-                      warn:'Sin diluir (1 mg/ml). Máx 0.5 mg. Repetir c/5-15 min' }
+                      warn:'Sin diluir (1 mg/ml). Máx 0.5 mg. Repetir c/5-15 min' },
                 ]},
                 { title:'CONVULSIONES', color:'#f59e0b', drugs:[
                     { name:'Diazepam IV', formula:'0.2 mg/kg', route:'IV lento (2-3 min)',
@@ -349,6 +349,47 @@
                     { name:'Midazolam IM/IN', formula:'0.2 mg/kg', route:'IM o intranasal',
                       concKey:'Si no hay vía: Midazolam IM/IN/Bucal', defaultConc:5, dose:fmt(d(0.2,10)), unit:'mg',
                       warn:'Máx 10 mg. Intranasal: máx 1 ml/narina' },
+                ]},
+                { title:'DESHIDRATACIÓN', color:'#3b82f6', drugs:[
+                    { name:'Bolo SSF 0.9%', formula:'20 ml/kg', route:'IV rápido',
+                      concKey:null, defaultConc:null, dose:fmt(20*w), unit:'ml',
+                      warn:'Máx 700 ml/h. Vigilar signos de sobrecarga' },
+                    { name:'SRO desh. leve', formula:'30 ml/kg', route:'ORAL en 4h',
+                      concKey:null, defaultConc:null, dose:fmt(30*w), unit:'ml',
+                      warn:'Moderada: ' + fmt(50*w) + ' ml (50 ml/kg). Por vómito: +2-3 ml/kg' },
+                ]},
+                { title:'DOLOR / FIEBRE', color:'#ef4444', drugs:[
+                    { name:'Paracetamol ORAL', formula:'15 mg/kg', route:'ORAL c/4-6h',
+                      concKey:'Paracetamol ORAL', defaultConc:100, dose:fmt(d(15,1000)), unit:'mg',
+                      warn:'Máx 1 g/dosis. Truco sol. 100mg/ml: 0.15 × kg = ml' },
+                    { name:'Ibuprofeno ORAL', formula:'10 mg/kg', route:'ORAL c/6-8h',
+                      concKey:'Ibuprofeno ORAL', defaultConc:20, dose:fmt(d(10,600)), unit:'mg',
+                      warn:'>3 meses. Máx 600 mg. Dalsy 20mg/ml: peso ÷ 3 = ml' },
+                ]},
+                { title:'INTOXICACIONES', color:'#6366f1', drugs:[
+                    { name:'N-Acetilcisteína (NAC)', formula:'140 mg/kg (carga)', route:'ORAL',
+                      concKey:null, defaultConc:200, dose:fmt(d(140,null)), unit:'mg',
+                      warn:'Fluimucil 20% (200 mg/ml). Mantenimiento: 70 mg/kg c/4h × 17 dosis. Diluir al 5% en zumo' },
+                    { name:'Carbón Activado', formula:'1 g/kg', route:'ORAL',
+                      concKey:null, defaultConc:null, dose:fmt(Math.min(1*w,50)), unit:'g',
+                      warn:'Máx 50 g. Diluir: 200 cc líquido por cada 25 g. NO con leche ni yogur' },
+                    { name:'Flumazenilo (BZD)', formula:'0.01 mg/kg', route:'IV rápido',
+                      concKey:null, defaultConc:0.1, dose:fmt(d(0.01,1)), unit:'mg',
+                      warn:'0.1 mg/ml. Máx 1 mg. Administración rápida (15-30 s). Cuidado convulsiones' },
+                    { name:'Naloxona (Opioides)', formula:'0.01 mg/kg', route:'IV/IM/IN',
+                      concKey:null, defaultConc:0.4, dose:fmt(d(0.01,2)), unit:'mg',
+                      warn:'0.4 mg/ml. Diluir 1cc + 3cc SSF. Repetir c/2-3 min si precisa' },
+                ]},
+                { title:'INTUBACIÓN SRI', color:'#1e3a8a', drugs:[
+                    { name:'Atropina', formula:'0.02 mg/kg', route:'IV',
+                      concKey:'PROTECCIÓN: Atropina', defaultConc:0.1, dose:fmt(d(0.02,1)), unit:'mg',
+                      warn:'DILUIR: 1cc + 9cc SSF → 0.1 mg/ml. Máx 1 mg' },
+                    { name:'Fentanilo', formula:'2 mcg/kg', route:'IV',
+                      concKey:'ANALGESIA: Fentanilo', defaultConc:10, dose:fmt(d(2,100)), unit:'mcg',
+                      warn:'DILUIR: 1cc + 4cc SSF → 10 mcg/ml. Máx 100 mcg' },
+                    { name:'Rocuronio', formula:'0.6 mg/kg', route:'IV',
+                      concKey:'PARÁLISIS: Rocuronio', defaultConc:1, dose:fmt(d(0.6,100)), unit:'mg',
+                      warn:'DILUIR: 1cc + 9cc SSF → 1 mg/ml. Máx 100 mg' },
                 ]},
                 { title:'RCP AVANZADA', color:'#10b981', drugs:[
                     { name:'Adrenalina IV/IO', formula:'0.01 mg/kg', route:'IV / IO',
@@ -361,32 +402,30 @@
                       concKey:null, defaultConc:null, dose:fmt(4*w), unit:'J',
                       warn:'4 J/kg en todos los choques' },
                 ]},
-                { title:'DOLOR / FIEBRE', color:'#ef4444', drugs:[
-                    { name:'Paracetamol ORAL', formula:'15 mg/kg', route:'ORAL c/4-6h',
-                      concKey:'Paracetamol ORAL', defaultConc:100, dose:fmt(d(15,1000)), unit:'mg',
-                      warn:'Máx 1 g/dosis. Truco sol. 100mg/ml: 0.15 × kg = ml' },
-                    { name:'Ibuprofeno ORAL', formula:'10 mg/kg', route:'ORAL c/6-8h',
-                      concKey:'Ibuprofeno ORAL', defaultConc:20, dose:fmt(d(10,600)), unit:'mg',
-                      warn:'>3 meses. Máx 600 mg. Dalsy 20mg/ml: peso ÷ 3 = ml' },
+                { title:'RESPIRATORIO', color:'#06b6d4', drugs:[
+                    { name:'Salbutamol MDI + cámara', formula:'Peso ÷ 3 = puffs', route:'Inhalado c/20 min',
+                      concKey:null, defaultConc:null, dose:Math.max(5,Math.min(10,Math.round(w/3))), unit:'puffs',
+                      warn:'Mín 5, máx 10 pulsaciones. Tanda de 3 dosis cada 20 min' },
+                    { name:'Dexametasona (laringitis)', formula:'0.6 mg/kg', route:'ORAL dosis única',
+                      concKey:null, defaultConc:null, dose:fmt(d(0.6,12)), unit:'mg',
+                      warn:'Máx 12 mg. Repetir a las 24h si precisa' },
+                    { name:'Adrenalina Nebulizada', formula:'0.5 mg/kg', route:'Nebulizada',
+                      concKey:null, defaultConc:1, dose:fmt(d(0.5,5)), unit:'mg',
+                      warn:'1:1000 (1 mg/ml). Máx 5 mg. Completar con SSF hasta 3-5 ml' },
                 ]},
-                { title:'DESHIDRATACIÓN', color:'#3b82f6', drugs:[
-                    { name:'Bolo SSF 0.9%', formula:'20 ml/kg', route:'IV rápido',
-                      concKey:null, defaultConc:null, dose:fmt(20*w), unit:'ml',
-                      warn:'Máx 700 ml/h. Vigilar signos de sobrecarga' },
-                    { name:'SRO desh. leve', formula:'30 ml/kg', route:'ORAL en 4h',
-                      concKey:null, defaultConc:null, dose:fmt(30*w), unit:'ml',
-                      warn:'Moderada: ' + fmt(50*w) + ' ml (50ml/kg). Por vómito: +2-3 ml/kg' },
-                ]},
-                { title:'INTUBACIÓN SRI', color:'#1e3a8a', drugs:[
-                    { name:'Atropina', formula:'0.02 mg/kg', route:'IV',
-                      concKey:'PROTECCIÓN: Atropina', defaultConc:0.1, dose:fmt(d(0.02,1)), unit:'mg',
-                      warn:'DILUIR: 1cc + 9cc SSF → 0.1 mg/ml. Máx 1 mg' },
-                    { name:'Fentanilo', formula:'2 mcg/kg', route:'IV',
-                      concKey:'ANALGESIA: Fentanilo', defaultConc:10, dose:fmt(d(2,100)), unit:'mcg',
-                      warn:'DILUIR: 1cc + 4cc SSF → 10 mcg/ml. Máx 100 mcg' },
-                    { name:'Rocuronio', formula:'0.6 mg/kg', route:'IV',
-                      concKey:'PARÁLISIS: Rocuronio', defaultConc:1, dose:fmt(d(0.6,100)), unit:'mg',
-                      warn:'DILUIR: 1cc + 9cc SSF → 1 mg/ml. Máx 100 mg' },
+                { title:'SEDACIÓN / ANALGESIA', color:'#8b5cf6', drugs:[
+                    { name:'Ketamina IV', formula:'1.5 mg/kg', route:'IV',
+                      concKey:null, defaultConc:50, dose:fmt(d(1.5,100)), unit:'mg',
+                      warn:'50 mg/ml. Máx 100 mg. Inicio 1-2 min, duración 15-20 min' },
+                    { name:'Midazolam IV', formula:'0.1 mg/kg', route:'IV',
+                      concKey:null, defaultConc:1, dose:fmt(d(0.1,6)), unit:'mg',
+                      warn:'1 mg/ml. Máx 6 mg (<12a). Monitorizar O2. Esperar 2-3 min entre dosis' },
+                    { name:'Midazolam IN', formula:'0.3 mg/kg', route:'Intranasal',
+                      concKey:null, defaultConc:5, dose:fmt(d(0.3,10)), unit:'mg',
+                      warn:'5 mg/ml. Máx 10 mg. Máx 1 ml/narina' },
+                    { name:'Ketamina IM', formula:'5 mg/kg', route:'IM',
+                      concKey:null, defaultConc:null, dose:fmt(d(5,300)), unit:'mg',
+                      warn:'Máx 300 mg. Dosis IM muy superior a la IV' },
                 ]},
             ];
 
