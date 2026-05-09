@@ -191,7 +191,7 @@
                 if (concentrations) {
                     setConcentrationVal(concentrations.mgPerMl);
                 }
-            }, [concentrations?.mgPerMl]);
+            }, []);
 
             const [calculated, setCalculated] = useState(null);
             const [volume, setVolume] = useState(null);
@@ -266,10 +266,9 @@
                                     <input 
                                         type="number" 
                                         value={concentrationVal}
-                                        onChange={(e) => {
-                                            const val = parseFloat(e.target.value) || 0;
-                                            setConcentrationVal(val);
-                                            if (onConcentrationChange) onConcentrationChange(drug, val);
+                                        onChange={(e) => setConcentrationVal(parseFloat(e.target.value) || 0)}
+                                        onBlur={(e) => {
+                                            if (onConcentrationChange) onConcentrationChange(drug, parseFloat(e.target.value) || 0);
                                         }}
                                         className="w-full text-center font-black text-gray-800 text-xl outline-none"
                                         placeholder="0"
