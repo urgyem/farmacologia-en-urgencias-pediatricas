@@ -266,8 +266,8 @@
                                     <input 
                                         type="number" 
                                         value={concentrationVal}
-                                        onChange={(e) => setConcentrationVal(e.target.value)}
-                                        onBlur={(e) => {
+                                        onChange={(e) => {
+                                            setConcentrationVal(e.target.value);
                                             if (onConcentrationChange) onConcentrationChange(drug, parseFloat(e.target.value) || 0);
                                         }}
                                         className="w-full text-center font-black text-gray-800 text-xl outline-none"
@@ -331,84 +331,150 @@
         const PrintSheet = ({ weight, customConc = {} }) => {
             const w = parseFloat(weight);
             if (!w || w <= 0) return null;
-            const d = (perKg, max) => { const dose = perKg * w; return max ? Math.min(dose, max) : dose; };
-            const f = (n) => parseFloat(n.toFixed(2));
-            // Devuelve la concentración activa: la del usuario si la cambió, o la por defecto
-            const gc = (concKey, defaultConc) => concKey ? (customConc[concKey] || defaultConc) : defaultConc;
-            const ml = (dose, concKey, defaultConc) => { const c = gc(concKey, defaultConc); return c ? f(dose / c) : null; };
-            const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const d  = (perKg, max) => { const dose = perKg * w; return max ? Math.min(dose, max) : dose; };
+            const fmt = (n) => { const r = parseFloat(n.toFixed(2)); return r % 1 === 0 ? String(r) : String(r); };
+            const gc  = (key, def) => key ? (customConc[key] || def) : def;
+            const date = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
+
             const sections = [
-                { title: 'ANAFILAXIA', color: '#ec4899', drugs: [
-                    { name: 'Adrenalina IM', concKey: null, defaultConc: 1, dose: f(d(0.01,0.5)), unit:'mg', note:'Sin diluir. Máx 0.5ml' }
+                { title:'ANAFILAXIA', color:'#ec4899', drugs:[
+                    { name:'Adrenalina IM', formula:'0.01 mg/kg', route:'IM cara ant. muslo',
+                      concKey:null, defaultConc:1, dose:fmt(d(0.01,0.5)), unit:'mg',
+                      warn:'Sin diluir (1 mg/ml). Máx 0.5 mg. Repetir c/5-15 min' }
                 ]},
-                { title: 'CONVULSIONES', color: '#f59e0b', drugs: [
-                    { name: 'Diazepam IV', concKey: 'Diazepam IV', defaultConc: 5, dose: f(d(0.2,10)), unit:'mg', note:'Lento 2-3 min. Máx 10mg' },
-                    { name: 'Midazolam IM/IN', concKey: 'Si no hay vía: Midazolam IM/IN/Bucal', defaultConc: 5, dose: f(d(0.2,10)), unit:'mg', note:'Máx 10mg' },
+                { title:'CONVULSIONES', color:'#f59e0b', drugs:[
+                    { name:'Diazepam IV', formula:'0.2 mg/kg', route:'IV lento (2-3 min)',
+                      concKey:'Diazepam IV', defaultConc:5, dose:fmt(d(0.2,10)), unit:'mg',
+                      warn:'Máx 10 mg. Vigilar depresión respiratoria' },
+                    { name:'Midazolam IM/IN', formula:'0.2 mg/kg', route:'IM o intranasal',
+                      concKey:'Si no hay vía: Midazolam IM/IN/Bucal', defaultConc:5, dose:fmt(d(0.2,10)), unit:'mg',
+                      warn:'Máx 10 mg. Intranasal: máx 1 ml/narina' },
                 ]},
-                { title: 'RCP AVANZADA', color: '#10b981', drugs: [
-                    { name: 'Adrenalina IV/IO', concKey: 'Adrenalina IV/IO', defaultConc: 1, dose: f(d(0.01,1)), unit:'mg', note:'Diluir 1cc+9cc SSF. Máx 1mg' },
-                    { name: 'Amiodarona IV/IO', concKey: 'Amiodarona IV/IO', defaultConc: 50, dose: f(d(5,300)), unit:'mg', note:'Bolo FV/TV. Máx 300mg' },
-                    { name: 'Desfibrilación', concKey: null, defaultConc: null, dose: f(4*w), unit:'J', note:'4 J/kg' },
+                { title:'RCP AVANZADA', color:'#10b981', drugs:[
+                    { name:'Adrenalina IV/IO', formula:'0.01 mg/kg', route:'IV / IO',
+                      concKey:'Adrenalina IV/IO', defaultConc:1, dose:fmt(d(0.01,1)), unit:'mg',
+                      warn:'DILUIR: 1cc + 9cc SSF → 0.1 mg/ml. Máx 1 mg. Repetir c/3-5 min' },
+                    { name:'Amiodarona IV/IO', formula:'5 mg/kg', route:'IV bolo',
+                      concKey:'Amiodarona IV/IO', defaultConc:50, dose:fmt(d(5,300)), unit:'mg',
+                      warn:'FV/TV sin pulso tras 3er choque. Máx 300 mg' },
+                    { name:'Desfibrilación', formula:'4 J/kg', route:'DEA / desfibrilador',
+                      concKey:null, defaultConc:null, dose:fmt(4*w), unit:'J',
+                      warn:'4 J/kg en todos los choques' },
                 ]},
-                { title: 'DOLOR / FIEBRE ORAL', color: '#ef4444', drugs: [
-                    { name: 'Paracetamol ORAL', concKey: 'Paracetamol ORAL', defaultConc: 100, dose: f(d(15,1000)), unit:'mg', note:'Máx 1g/dosis' },
-                    { name: 'Ibuprofeno ORAL', concKey: 'Ibuprofeno ORAL', defaultConc: 20, dose: f(d(10,600)), unit:'mg', note:'>3 meses. Máx 600mg' },
+                { title:'DOLOR / FIEBRE', color:'#ef4444', drugs:[
+                    { name:'Paracetamol ORAL', formula:'15 mg/kg', route:'ORAL c/4-6h',
+                      concKey:'Paracetamol ORAL', defaultConc:100, dose:fmt(d(15,1000)), unit:'mg',
+                      warn:'Máx 1 g/dosis. Truco sol. 100mg/ml: 0.15 × kg = ml' },
+                    { name:'Ibuprofeno ORAL', formula:'10 mg/kg', route:'ORAL c/6-8h',
+                      concKey:'Ibuprofeno ORAL', defaultConc:20, dose:fmt(d(10,600)), unit:'mg',
+                      warn:'>3 meses. Máx 600 mg. Dalsy 20mg/ml: peso ÷ 3 = ml' },
                 ]},
-                { title: 'DESHIDRATACIÓN', color: '#3b82f6', drugs: [
-                    { name: 'Bolo SSF 0.9% IV', concKey: null, defaultConc: null, dose: f(20*w), unit:'ml', note:'Máx 700ml/h' },
-                    { name: 'SRO leve 30ml/kg (en 4h)', concKey: null, defaultConc: null, dose: f(30*w), unit:'ml', note:'' },
+                { title:'DESHIDRATACIÓN', color:'#3b82f6', drugs:[
+                    { name:'Bolo SSF 0.9%', formula:'20 ml/kg', route:'IV rápido',
+                      concKey:null, defaultConc:null, dose:fmt(20*w), unit:'ml',
+                      warn:'Máx 700 ml/h. Vigilar signos de sobrecarga' },
+                    { name:'SRO desh. leve', formula:'30 ml/kg', route:'ORAL en 4h',
+                      concKey:null, defaultConc:null, dose:fmt(30*w), unit:'ml',
+                      warn:'Moderada: ' + fmt(50*w) + ' ml (50ml/kg). Por vómito: +2-3 ml/kg' },
                 ]},
-                { title: 'INTUBACIÓN SRI', color: '#1e3a8a', drugs: [
-                    { name: 'Atropina', concKey: 'PROTECCIÓN: Atropina', defaultConc: 0.1, dose: f(d(0.02,1)), unit:'mg', note:'Diluir 1cc+9cc SSF' },
-                    { name: 'Fentanilo', concKey: 'ANALGESIA: Fentanilo', defaultConc: 10, dose: f(d(2,100)), unit:'mcg', note:'Diluir 1cc+4cc SSF' },
-                    { name: 'Rocuronio', concKey: 'PARÁLISIS: Rocuronio', defaultConc: 1, dose: f(d(0.6,100)), unit:'mg', note:'Diluir 1cc+9cc SSF' },
+                { title:'INTUBACIÓN SRI', color:'#1e3a8a', drugs:[
+                    { name:'Atropina', formula:'0.02 mg/kg', route:'IV',
+                      concKey:'PROTECCIÓN: Atropina', defaultConc:0.1, dose:fmt(d(0.02,1)), unit:'mg',
+                      warn:'DILUIR: 1cc + 9cc SSF → 0.1 mg/ml. Máx 1 mg' },
+                    { name:'Fentanilo', formula:'2 mcg/kg', route:'IV',
+                      concKey:'ANALGESIA: Fentanilo', defaultConc:10, dose:fmt(d(2,100)), unit:'mcg',
+                      warn:'DILUIR: 1cc + 4cc SSF → 10 mcg/ml. Máx 100 mcg' },
+                    { name:'Rocuronio', formula:'0.6 mg/kg', route:'IV',
+                      concKey:'PARÁLISIS: Rocuronio', defaultConc:1, dose:fmt(d(0.6,100)), unit:'mg',
+                      warn:'DILUIR: 1cc + 9cc SSF → 1 mg/ml. Máx 100 mg' },
                 ]},
             ];
+
             return (
                 <div className="print-sheet">
-                    <div style={{fontFamily:'Arial,sans-serif',padding:'20px',color:'#111'}}>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'14px',paddingBottom:'10px',borderBottom:'3px solid #1e3a8a'}}>
-                            <div>
-                                <div style={{fontSize:'20px',fontWeight:'bold',color:'#1e3a8a'}}>PediFarmaAPP · Hoja de Dosis</div>
-                                <div style={{fontSize:'11px',color:'#666',marginTop:'2px'}}>Urgencias y Emergencias® · urgenciasyemergencias.com</div>
-                            </div>
-                            <div style={{textAlign:'right',background:'#f0f4ff',padding:'8px 14px',borderRadius:'8px',border:'1px solid #c7d2fe'}}>
-                                <div style={{fontSize:'24px',fontWeight:'bold',color:'#1e3a8a'}}>{weight} kg</div>
-                                <div style={{fontSize:'11px',color:'#666'}}>{date}</div>
-                            </div>
+                <div style={{fontFamily:'Arial,sans-serif',padding:'16px',color:'#111',fontSize:'11px'}}>
+
+                    {/* Cabecera */}
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'12px',paddingBottom:'8px',borderBottom:'3px solid #1e3a8a'}}>
+                        <div>
+                            <div style={{fontSize:'18px',fontWeight:'bold',color:'#1e3a8a'}}>PediFarmaAPP · Hoja de Dosis</div>
+                            <div style={{fontSize:'10px',color:'#666',marginTop:'2px'}}>Urgencias y Emergencias® · urgenciasyemergencias.com</div>
+                            <div style={{fontSize:'9px',color:'#b91c1c',marginTop:'2px'}}>⚠ Verificar concentración del vial antes de administrar · Uso exclusivo para profesionales sanitarios</div>
                         </div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
-                            {sections.map(sec => (
-                                <div key={sec.title} style={{border:'1px solid #e5e7eb',borderRadius:'8px',overflow:'hidden',pageBreakInside:'avoid'}}>
-                                    <div style={{background:sec.color,color:'white',padding:'5px 10px',fontWeight:'bold',fontSize:'11px',letterSpacing:'0.05em'}}>{sec.title}</div>
-                                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:'11px'}}>
-                                        <tbody>
-                                            {sec.drugs.map((drug,i) => {
-                                                const mlVal = drug.defaultConc ? ml(drug.dose, drug.concKey, drug.defaultConc) : null;
-                                                const concUsed = gc(drug.concKey, drug.defaultConc);
-                                                return (
-                                                <tr key={i} style={{borderBottom:'1px solid #f3f4f6'}}>
-                                                    <td style={{padding:'5px 8px',fontWeight:'600',width:'36%'}}>
-                                                        {drug.name}
-                                                        {drug.defaultConc && <span style={{display:'block',fontSize:'9px',color:'#9ca3af',fontWeight:'normal'}}>{concUsed} {drug.unit}/ml</span>}
-                                                    </td>
-                                                    <td style={{padding:'5px 8px',textAlign:'center',fontWeight:'bold',color:sec.color,whiteSpace:'nowrap',width:'26%'}}>
-                                                        {drug.dose} {drug.unit}
-                                                        {mlVal !== null && <span style={{color:'#166534',display:'block',fontSize:'12px'}}>= {mlVal} ml</span>}
-                                                    </td>
-                                                    <td style={{padding:'5px 8px',color:'#6b7280',fontSize:'10px'}}>{drug.note}</td>
-                                                </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ))}
-                        </div>
-                        <div style={{marginTop:'10px',padding:'6px 10px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'6px',fontSize:'10px',color:'#991b1b'}}>
-                            ⚠️ Verificar siempre la concentración del fármaco disponible. Uso exclusivo para profesionales sanitarios.
+                        <div style={{textAlign:'right',background:'#eff6ff',padding:'8px 16px',borderRadius:'8px',border:'2px solid #bfdbfe',minWidth:'110px'}}>
+                            <div style={{fontSize:'10px',color:'#1e40af',fontWeight:'bold',textTransform:'uppercase',letterSpacing:'0.05em'}}>Peso paciente</div>
+                            <div style={{fontSize:'30px',fontWeight:'bold',color:'#1e3a8a',lineHeight:'1.1'}}>{weight} kg</div>
+                            <div style={{fontSize:'10px',color:'#666',marginTop:'2px'}}>{date}</div>
                         </div>
                     </div>
+
+                    {/* Leyenda columnas */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                    {sections.map(sec => (
+                        <div key={sec.title} style={{border:'1px solid #e5e7eb',borderRadius:'8px',overflow:'hidden',pageBreakInside:'avoid'}}>
+
+                            {/* Cabecera sección */}
+                            <div style={{background:sec.color,color:'white',padding:'5px 10px',display:'grid',gridTemplateColumns:'2fr 1fr 1fr',alignItems:'center'}}>
+                                <span style={{fontWeight:'bold',fontSize:'11px',letterSpacing:'0.06em'}}>{sec.title}</span>
+                                <span style={{fontSize:'9px',textAlign:'center',opacity:'0.9'}}>DOSIS CALCULADA</span>
+                                <span style={{fontSize:'9px',textAlign:'center',opacity:'0.9',fontWeight:'bold'}}>▶ EXTRAER</span>
+                            </div>
+
+                            {/* Filas de fármacos */}
+                            {sec.drugs.map((drug, i) => {
+                                const conc  = gc(drug.concKey, drug.defaultConc);
+                                const mlVal = (conc && drug.defaultConc) ? fmt(parseFloat(drug.dose) / conc) : null;
+                                return (
+                                <div key={i} style={{borderBottom: i < sec.drugs.length-1 ? '1px solid #e5e7eb' : 'none'}}>
+                                    <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',alignItems:'stretch'}}>
+
+                                        {/* Col 1: Fármaco */}
+                                        <div style={{padding:'6px 8px',borderRight:'1px solid #f3f4f6'}}>
+                                            <div style={{fontWeight:'bold',fontSize:'12px',color:'#111'}}>{drug.name}</div>
+                                            <div style={{marginTop:'2px',display:'flex',gap:'4px',flexWrap:'wrap'}}>
+                                                <span style={{background:'#f3f4f6',padding:'1px 5px',borderRadius:'3px',fontSize:'9px',color:'#374151',fontWeight:'600'}}>{drug.formula}</span>
+                                                <span style={{fontSize:'9px',color:'#6b7280'}}>{drug.route}</span>
+                                            </div>
+                                            {conc && drug.defaultConc &&
+                                                <div style={{marginTop:'2px',fontSize:'9px',color:'#9ca3af'}}>Conc. usada: <strong style={{color:'#4b5563'}}>{conc} {drug.unit}/ml</strong></div>
+                                            }
+                                        </div>
+
+                                        {/* Col 2: Dosis calculada (mg/mcg/J) */}
+                                        <div style={{padding:'6px 4px',textAlign:'center',background:'#fafafa',borderRight:'1px solid #f3f4f6',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+                                            <div style={{fontWeight:'bold',fontSize:'16px',color:sec.color,lineHeight:'1'}}>{drug.dose}</div>
+                                            <div style={{fontSize:'10px',color:sec.color,fontWeight:'600'}}>{drug.unit}</div>
+                                        </div>
+
+                                        {/* Col 3: Volumen a extraer — MÁS PROMINENTE */}
+                                        <div style={{padding:'4px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                            {mlVal !== null ? (
+                                                <div style={{background:'#f0fdf4',border:'2px solid #4ade80',borderRadius:'6px',padding:'5px 4px',textAlign:'center',width:'100%'}}>
+                                                    <div style={{fontWeight:'bold',fontSize:'20px',color:'#15803d',lineHeight:'1'}}>{mlVal}</div>
+                                                    <div style={{fontSize:'10px',color:'#15803d',fontWeight:'bold'}}>ml</div>
+                                                </div>
+                                            ) : (
+                                                <div style={{background:'#eff6ff',border:'2px solid #93c5fd',borderRadius:'6px',padding:'5px 4px',textAlign:'center',width:'100%'}}>
+                                                    <div style={{fontWeight:'bold',fontSize:'20px',color:'#1d4ed8',lineHeight:'1'}}>{drug.dose}</div>
+                                                    <div style={{fontSize:'10px',color:'#1d4ed8',fontWeight:'bold'}}>{drug.unit}</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Fila de advertencia */}
+                                    {drug.warn && (
+                                        <div style={{padding:'3px 8px',fontSize:'9px',color:'#92400e',background:'#fffbeb',borderTop:'1px solid #fde68a'}}>
+                                            ⚠ {drug.warn}
+                                        </div>
+                                    )}
+                                </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+                    </div>
+                </div>
                 </div>
             );
         };
@@ -1146,7 +1212,7 @@
                 <div className="min-h-screen bg-gray-100 font-sans text-gray-900 flex flex-col items-center p-4 md:p-8">
                 
                 {slideIndex !== 0 && !isMenuOpen && (
-                    <div className="w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-3 rounded-xl shadow-md sticky top-0 z-50">
+                    <div className="no-print w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-3 rounded-xl shadow-md sticky top-0 z-50">
                         <div className="flex items-center gap-3 flex-1">
                             {/* Botón HOME / CASITA - Vuelve a la portada (slide 0) */}
                             <button 
