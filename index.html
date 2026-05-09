@@ -11,12 +11,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="PediFarmaAPP">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon-180.png">
     
-    <!-- 1. Cargar React y ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
+    <!-- 1. Cargar React y ReactDOM (producción: 6x más ligero que desarrollo) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
     <!-- 2. Cargar Babel para entender JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
@@ -33,6 +33,13 @@
         input[type=number]::-webkit-outer-spin-button { 
             -webkit-appearance: none; 
             margin: 0; 
+        }
+        /* Impresión */
+        .print-sheet { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-sheet { display: block !important; }
+            body { background: white !important; padding: 0 !important; }
         }
         /* Estilo para el select de navegación */
         .nav-select {
@@ -177,7 +184,7 @@
             );
         };
 
-        const DoseCard = ({ drug, weight, doseInfo, concentrations, color, notes, warning, unit = 'mg', dilution }) => {
+        const DoseCard = ({ drug, weight, doseInfo, concentrations, color, notes, warning, unit = 'mg', dilution, onConcentrationChange }) => {
             const [concentrationVal, setConcentrationVal] = useState(concentrations ? concentrations.mgPerMl : 0);
             
             useEffect(() => {
@@ -188,6 +195,16 @@
 
             const [calculated, setCalculated] = useState(null);
             const [volume, setVolume] = useState(null);
+            const [copied, setCopied] = useState(false);
+            const handleCopy = () => {
+                const text = calculated !== null
+                    ? `${drug}: ${calculated.toFixed(2)} ${unit}${volume ? ` = ${volume.toFixed(2)} ml` : ''}`
+                    : drug;
+                navigator.clipboard.writeText(text).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                }).catch(() => {});
+            };
 
             useEffect(() => {
                 const w = parseFloat(weight);
@@ -249,7 +266,11 @@
                                     <input 
                                         type="number" 
                                         value={concentrationVal}
-                                        onChange={(e) => setConcentrationVal(parseFloat(e.target.value) || 0)}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value) || 0;
+                                            setConcentrationVal(val);
+                                            if (onConcentrationChange) onConcentrationChange(drug, val);
+                                        }}
                                         className="w-full text-center font-black text-gray-800 text-xl outline-none"
                                         placeholder="0"
                                     />
@@ -267,10 +288,10 @@
                             {calculated !== null ? (
                                 <div className="w-full flex flex-col items-center">
                                     <div className="text-xl md:text-2xl font-black text-blue-700 leading-none mb-2">
-                                        {typeof calculated === 'number' ? calculated.toFixed(2).replace(/\.00$/, '') : calculated} 
+                                        {typeof calculated === 'number' ? calculated.toFixed(2).replace(/\.00$/, '') : calculated}
                                         <span className="text-sm ml-1 text-blue-500 font-bold">{unit}</span>
                                     </div>
-                                    
+
                                     {concentrations && (
                                         <>
                                             {volume !== null && volume !== Infinity && !isNaN(volume) ? (
@@ -284,6 +305,9 @@
                                             )}
                                         </>
                                     )}
+                                    <button onClick={handleCopy} className="mt-2 text-xs font-semibold text-gray-400 hover:text-blue-600 transition-colors">
+                                        {copied ? '✓ Copiado' : '📋 Copiar'}
+                                    </button>
                                 </div>
                             ) : (
                                 <span className="text-xs text-gray-400 italic">Esperando peso...</span>
@@ -301,6 +325,91 @@
                     )}
                     
                     {notes && <p className="mt-3 text-xs md:text-sm text-gray-600 border-t pt-2 italic">{notes}</p>}
+                </div>
+            );
+        };
+
+        const PrintSheet = ({ weight, customConc = {} }) => {
+            const w = parseFloat(weight);
+            if (!w || w <= 0) return null;
+            const d = (perKg, max) => { const dose = perKg * w; return max ? Math.min(dose, max) : dose; };
+            const f = (n) => parseFloat(n.toFixed(2));
+            // Devuelve la concentración activa: la del usuario si la cambió, o la por defecto
+            const gc = (concKey, defaultConc) => concKey ? (customConc[concKey] || defaultConc) : defaultConc;
+            const ml = (dose, concKey, defaultConc) => { const c = gc(concKey, defaultConc); return c ? f(dose / c) : null; };
+            const date = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const sections = [
+                { title: 'ANAFILAXIA', color: '#ec4899', drugs: [
+                    { name: 'Adrenalina IM', concKey: null, defaultConc: 1, dose: f(d(0.01,0.5)), unit:'mg', note:'Sin diluir. Máx 0.5ml' }
+                ]},
+                { title: 'CONVULSIONES', color: '#f59e0b', drugs: [
+                    { name: 'Diazepam IV', concKey: 'Diazepam IV', defaultConc: 5, dose: f(d(0.2,10)), unit:'mg', note:'Lento 2-3 min. Máx 10mg' },
+                    { name: 'Midazolam IM/IN', concKey: 'Si no hay vía: Midazolam IM/IN/Bucal', defaultConc: 5, dose: f(d(0.2,10)), unit:'mg', note:'Máx 10mg' },
+                ]},
+                { title: 'RCP AVANZADA', color: '#10b981', drugs: [
+                    { name: 'Adrenalina IV/IO', concKey: 'Adrenalina IV/IO', defaultConc: 1, dose: f(d(0.01,1)), unit:'mg', note:'Diluir 1cc+9cc SSF. Máx 1mg' },
+                    { name: 'Amiodarona IV/IO', concKey: 'Amiodarona IV/IO', defaultConc: 50, dose: f(d(5,300)), unit:'mg', note:'Bolo FV/TV. Máx 300mg' },
+                    { name: 'Desfibrilación', concKey: null, defaultConc: null, dose: f(4*w), unit:'J', note:'4 J/kg' },
+                ]},
+                { title: 'DOLOR / FIEBRE ORAL', color: '#ef4444', drugs: [
+                    { name: 'Paracetamol ORAL', concKey: 'Paracetamol ORAL', defaultConc: 100, dose: f(d(15,1000)), unit:'mg', note:'Máx 1g/dosis' },
+                    { name: 'Ibuprofeno ORAL', concKey: 'Ibuprofeno ORAL', defaultConc: 20, dose: f(d(10,600)), unit:'mg', note:'>3 meses. Máx 600mg' },
+                ]},
+                { title: 'DESHIDRATACIÓN', color: '#3b82f6', drugs: [
+                    { name: 'Bolo SSF 0.9% IV', concKey: null, defaultConc: null, dose: f(20*w), unit:'ml', note:'Máx 700ml/h' },
+                    { name: 'SRO leve 30ml/kg (en 4h)', concKey: null, defaultConc: null, dose: f(30*w), unit:'ml', note:'' },
+                ]},
+                { title: 'INTUBACIÓN SRI', color: '#1e3a8a', drugs: [
+                    { name: 'Atropina', concKey: 'PROTECCIÓN: Atropina', defaultConc: 0.1, dose: f(d(0.02,1)), unit:'mg', note:'Diluir 1cc+9cc SSF' },
+                    { name: 'Fentanilo', concKey: 'ANALGESIA: Fentanilo', defaultConc: 10, dose: f(d(2,100)), unit:'mcg', note:'Diluir 1cc+4cc SSF' },
+                    { name: 'Rocuronio', concKey: 'PARÁLISIS: Rocuronio', defaultConc: 1, dose: f(d(0.6,100)), unit:'mg', note:'Diluir 1cc+9cc SSF' },
+                ]},
+            ];
+            return (
+                <div className="print-sheet">
+                    <div style={{fontFamily:'Arial,sans-serif',padding:'20px',color:'#111'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'14px',paddingBottom:'10px',borderBottom:'3px solid #1e3a8a'}}>
+                            <div>
+                                <div style={{fontSize:'20px',fontWeight:'bold',color:'#1e3a8a'}}>PediFarmaAPP · Hoja de Dosis</div>
+                                <div style={{fontSize:'11px',color:'#666',marginTop:'2px'}}>Urgencias y Emergencias® · urgenciasyemergencias.com</div>
+                            </div>
+                            <div style={{textAlign:'right',background:'#f0f4ff',padding:'8px 14px',borderRadius:'8px',border:'1px solid #c7d2fe'}}>
+                                <div style={{fontSize:'24px',fontWeight:'bold',color:'#1e3a8a'}}>{weight} kg</div>
+                                <div style={{fontSize:'11px',color:'#666'}}>{date}</div>
+                            </div>
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+                            {sections.map(sec => (
+                                <div key={sec.title} style={{border:'1px solid #e5e7eb',borderRadius:'8px',overflow:'hidden',pageBreakInside:'avoid'}}>
+                                    <div style={{background:sec.color,color:'white',padding:'5px 10px',fontWeight:'bold',fontSize:'11px',letterSpacing:'0.05em'}}>{sec.title}</div>
+                                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:'11px'}}>
+                                        <tbody>
+                                            {sec.drugs.map((drug,i) => {
+                                                const mlVal = drug.defaultConc ? ml(drug.dose, drug.concKey, drug.defaultConc) : null;
+                                                const concUsed = gc(drug.concKey, drug.defaultConc);
+                                                return (
+                                                <tr key={i} style={{borderBottom:'1px solid #f3f4f6'}}>
+                                                    <td style={{padding:'5px 8px',fontWeight:'600',width:'36%'}}>
+                                                        {drug.name}
+                                                        {drug.defaultConc && <span style={{display:'block',fontSize:'9px',color:'#9ca3af',fontWeight:'normal'}}>{concUsed} {drug.unit}/ml</span>}
+                                                    </td>
+                                                    <td style={{padding:'5px 8px',textAlign:'center',fontWeight:'bold',color:sec.color,whiteSpace:'nowrap',width:'26%'}}>
+                                                        {drug.dose} {drug.unit}
+                                                        {mlVal !== null && <span style={{color:'#166534',display:'block',fontSize:'12px'}}>= {mlVal} ml</span>}
+                                                    </td>
+                                                    <td style={{padding:'5px 8px',color:'#6b7280',fontSize:'10px'}}>{drug.note}</td>
+                                                </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{marginTop:'10px',padding:'6px 10px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'6px',fontSize:'10px',color:'#991b1b'}}>
+                            ⚠️ Verificar siempre la concentración del fármaco disponible. Uso exclusivo para profesionales sanitarios.
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -358,12 +467,20 @@
         function UrgenciasApp() {
             const [slideIndex, setSlideIndex] = useState(0);
             const [isMenuOpen, setIsMenuOpen] = useState(false);
-            const [weight, setWeight] = useState('');
+            const [weight, setWeight] = useState(() => localStorage.getItem('pedifarma-peso') || '');
+            useEffect(() => {
+                weight ? localStorage.setItem('pedifarma-peso', weight) : localStorage.removeItem('pedifarma-peso');
+            }, [weight]);
             
             const [activeTabs, setActiveTabs] = useState({
                 pain: 'oral',
                 sedation: 'iv'
             });
+
+            const [customConc, setCustomConc] = useState({});
+            const handleConcentrationChange = (drugName, val) => {
+                setCustomConc(prev => ({ ...prev, [drugName]: val }));
+            };
 
             const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
             const [canInstall, setCanInstall] = useState(!isAlreadyInstalled);
@@ -539,6 +656,7 @@
                             doseInfo={{ perKg: 0.2, text: "0.2 mg/kg", max: 10, maxText: "5mg (<5a) / 10mg (>5a)" }}
                             concentrations={{ name: "Ampolla", mgPerMl: 5 }}
                             notes="Inyectar lento (2-3 min). Puede deprimir respiración."
+                            onConcentrationChange={handleConcentrationChange}
                             />
                         </div>
 
@@ -550,8 +668,9 @@
                                 weight={weight}
                                 color={colors.seizure}
                                 doseInfo={{ perKg: 0.2, text: "0.2 - 0.3 mg/kg", max: 10, maxText: "10 mg" }}
-                                concentrations={{ name: "Ampolla", mgPerMl: 5 }} 
+                                concentrations={{ name: "Ampolla", mgPerMl: 5 }}
                                 notes="Se usa 0.2 mg/kg como base para el cálculo. Ajustar según respuesta."
+                                onConcentrationChange={handleConcentrationChange}
                             />
                         </div>
 
@@ -651,6 +770,7 @@
                             doseInfo={{ perKg: 15, text: "10-15 mg/kg cada 4-6h", max: 1000, maxText: "1g/dosis (4g/día)" }}
                             concentrations={{ name: "Solución", mgPerMl: 100 }}
                             notes="Truco: 0.15 x Kg = ml a administrar (sol. 100mg/ml)"
+                            onConcentrationChange={handleConcentrationChange}
                             />
                             <DoseCard 
                             key="ibuprofeno-oral"
@@ -661,6 +781,7 @@
                             concentrations={{ name: "Jarabe 2%", mgPerMl: 20 }}
                             notes="Edad > 3 meses. Truco (Dalsy 20mg/ml): Peso / 3 = ml a administrar."
                             warning="No usar en < 3 meses"
+                            onConcentrationChange={handleConcentrationChange}
                             />
                             <DoseCard 
                             key="metamizol-oral"
@@ -793,6 +914,7 @@
                                 concentrations={{ name: "Dilución", mgPerMl: 0.1 }}
                                 dilution={{ drugParts: 1, solventParts: 9 }}
                                 notes="Diluir 1cc Atropina + 9cc SSF. Resultado: 0.1 mg/ml."
+                                onConcentrationChange={handleConcentrationChange}
                             />
 
                             <DoseCard 
@@ -802,9 +924,10 @@
                                 color={colors.intub}
                                 unit="mcg"
                                 doseInfo={{ perKg: 2, text: "1 - 4 mcg/kg (Calc: 2 mcg/kg)", max: 100, maxText: "100 mcg" }}
-                                concentrations={{ name: "Dilución", mgPerMl: 10 }} // 10 mcg/ml
+                                concentrations={{ name: "Dilución", mgPerMl: 10 }}
                                 dilution={{ drugParts: 1, solventParts: 4 }}
                                 notes="Diluir 1cc Fentanilo + 4cc SSF. Resultado: 10 mcg/ml."
+                                onConcentrationChange={handleConcentrationChange}
                             />
 
                             <DoseCard 
@@ -816,6 +939,7 @@
                                 concentrations={{ name: "Dilución", mgPerMl: 1 }}
                                 dilution={{ drugParts: 1, solventParts: 9 }}
                                 notes="Diluir 1cc Rocuronio + 9cc SSF. Resultado: 1 mg/ml."
+                                onConcentrationChange={handleConcentrationChange}
                             />
                         </div>
                     </Slide>
@@ -834,8 +958,9 @@
                             weight={weight}
                             color={colors.cpr}
                             doseInfo={{ perKg: 0.01, text: "0.01 mg/kg", max: 1, maxText: "1 mg" }}
-                            concentrations={{ name: "Ampolla", mgPerMl: 1 }} 
+                            concentrations={{ name: "Ampolla", mgPerMl: 1 }}
                             notes="DILUIR: 1cc adrenalina + 9cc SSF. (Queda 0.1mg/ml). Repetir c/3-5 min."
+                            onConcentrationChange={handleConcentrationChange}
                         />
                         <DoseCard 
                             key="amiodarona-rcp"
@@ -845,6 +970,7 @@
                             doseInfo={{ perKg: 5, text: "5 mg/kg", max: 300, maxText: "300 mg" }}
                             concentrations={{ name: "Ampolla", mgPerMl: 50 }}
                             notes="Bolo directo en FV/TV sin pulso tras 3er choque."
+                            onConcentrationChange={handleConcentrationChange}
                         />
                         </div>
                         
@@ -1052,6 +1178,11 @@
                         </div>
                         
                         <div className="flex items-center gap-2 border-l pl-4 ml-2">
+                            <button
+                                onClick={() => window.print()}
+                                className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                title="Imprimir hoja de dosis"
+                            >🖨️</button>
                             <label className="text-xs font-bold text-gray-400 uppercase hidden sm:block">Peso</label>
                             <div className="relative">
                                 <input 
@@ -1067,7 +1198,7 @@
                     </div>
                 )}
 
-                <div className="w-full max-w-5xl flex-1 mb-8" style={{ minHeight: '600px' }}>
+                <div className="no-print w-full max-w-5xl flex-1 mb-8" style={{ minHeight: '600px' }}>
                     {isMenuOpen ? (
                     <MainMenu slides={slides} onNavigate={handleMenuNavigation} colors={colors} />
                     ) : (
@@ -1075,16 +1206,16 @@
                     )}
                 </div>
 
-                {/* --- FOOTER ACTUALIZADO CON CRÉDITOS --- */}
-
+                {/* --- FOOTER --- */}
                 {!isMenuOpen && slideIndex !== 0 && (
-                    <div className="py-4 px-2 text-center text-gray-500 text-[10px] md:text-xs border-t mt-4 leading-tight">
+                    <div className="no-print py-4 px-2 text-center text-gray-500 text-[10px] md:text-xs border-t mt-4 leading-tight">
                         <p className="font-bold text-gray-600 mb-1">PediFarmaAPP v2.0</p>
                         <p>Creado por Elena Plaza Moreno - Urgencias y Emergencias® - www.urgenciasyemergencias.com</p>
                         <p className="mt-1 opacity-75">© 2026 Todos los derechos reservados.</p>
                     </div>
                 )}
 
+                <PrintSheet weight={weight} customConc={customConc} />
                 </div>
             );
         }
