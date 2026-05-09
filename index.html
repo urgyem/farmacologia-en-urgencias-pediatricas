@@ -185,11 +185,11 @@
         };
 
         const DoseCard = ({ drug, weight, doseInfo, concentrations, color, notes, warning, unit = 'mg', dilution, onConcentrationChange }) => {
-            const [concentrationVal, setConcentrationVal] = useState(concentrations ? concentrations.mgPerMl : 0);
-            
+            const [concentrationVal, setConcentrationVal] = useState(concentrations ? String(concentrations.mgPerMl) : '');
+
             useEffect(() => {
                 if (concentrations) {
-                    setConcentrationVal(concentrations.mgPerMl);
+                    setConcentrationVal(String(concentrations.mgPerMl));
                 }
             }, []);
 
@@ -213,9 +213,9 @@
                     if (doseInfo.max && doseVal > doseInfo.max) doseVal = doseInfo.max;
                     setCalculated(doseVal);
 
-                    if (concentrationVal > 0) {
-                        const vol = doseVal / concentrationVal;
-                        setVolume(vol);
+                    const concNum = parseFloat(concentrationVal);
+                    if (concNum > 0) {
+                        setVolume(doseVal / concNum);
                     } else {
                         setVolume(null);
                     }
@@ -266,7 +266,7 @@
                                     <input 
                                         type="number" 
                                         value={concentrationVal}
-                                        onChange={(e) => setConcentrationVal(parseFloat(e.target.value) || 0)}
+                                        onChange={(e) => setConcentrationVal(e.target.value)}
                                         onBlur={(e) => {
                                             if (onConcentrationChange) onConcentrationChange(drug, parseFloat(e.target.value) || 0);
                                         }}
