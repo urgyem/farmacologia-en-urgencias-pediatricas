@@ -488,7 +488,7 @@
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'12px',paddingBottom:'8px',borderBottom:'3px solid #1e3a8a'}}>
                     <div>
                         <div style={{fontSize:'18px',fontWeight:'bold',color:'#1e3a8a'}}>PediFarmaAPP · Hoja de Dosis</div>
-                        <div style={{fontSize:'10px',color:'#666',marginTop:'2px'}}>Urgencias y Emergencias® · urgenciasyemergencias.com</div>
+                        <div style={{fontSize:'10px',color:'#666',marginTop:'2px'}}>Urgencias y Emergencias® · www.urgenciasyemergen.com</div>
                         <div style={{fontSize:'9px',color:'#b91c1c',marginTop:'2px'}}>⚠ Verificar concentración del vial antes de administrar · Uso exclusivo para profesionales sanitarios</div>
                     </div>
                     <div style={{textAlign:'right',background:'#eff6ff',padding:'8px 16px',borderRadius:'8px',border:'2px solid #bfdbfe',minWidth:'110px'}}>
@@ -500,6 +500,12 @@
                 </div>
             );
 
+            const printDisclaimer = (
+                <div style={{marginTop:'14px',paddingTop:'7px',borderTop:'1px solid #d1d5db',fontSize:'7.5px',color:'#9ca3af',textAlign:'center',lineHeight:'1.6'}}>
+                    <strong style={{color:'#6b7280'}}>AVISO LEGAL:</strong> Esta aplicación es exclusivamente una calculadora de dosis. No constituye ni sustituye ninguna herramienta de prevención, diagnóstico ni tratamiento médico. Úsese con cautela y revísense siempre los resultados antes de administrar cualquier medicamento. &nbsp;|&nbsp; PediFarmaAPP v2 · Creada por Elena Plaza Moreno · Urgencias y Emergencias® · www.urgenciasyemergen.com · Contacto: www.urgenciasyemergen.com/contacto
+                </div>
+            );
+
             return (
                 <div className="print-sheet">
                 <div style={{fontFamily:'Arial,sans-serif',padding:'16px',color:'#111',fontSize:'11px',pageBreakAfter:'always'}}>
@@ -507,16 +513,77 @@
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
                     {page1Sections.map(renderSec)}
                     </div>
+                    {printDisclaimer}
                 </div>
                 <div style={{fontFamily:'Arial,sans-serif',padding:'16px',color:'#111',fontSize:'11px'}}>
                     {pageHeader(2)}
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
                     {page2Sections.map(renderSec)}
                     </div>
+                    {printDisclaimer}
                 </div>
                 </div>
             );
         };
+
+        const AboutModal = ({ onClose }) => (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor:'rgba(0,0,0,0.65)'}}>
+                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+                    <div className="p-6 flex justify-between items-start" style={{background:'linear-gradient(135deg,#1e3a8a,#1e40af)'}}>
+                        <div>
+                            <h2 className="text-2xl font-bold text-white">Acerca de</h2>
+                            <p className="text-blue-200 text-sm mt-1 font-semibold">PediFarmaAPP</p>
+                        </div>
+                        <button onClick={onClose} className="text-white/60 hover:text-white text-3xl leading-none font-bold ml-4">×</button>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                            <div className="flex items-start gap-3">
+                                <AlertOctagon className="flex-shrink-0 mt-0.5 text-red-500" size={20} />
+                                <div>
+                                    <p className="font-black text-red-800 text-xs uppercase tracking-wide mb-1">Aviso Legal · Uso responsable</p>
+                                    <p className="text-red-700 text-sm leading-relaxed">
+                                        Esta aplicación es <strong>exclusivamente una calculadora de dosis</strong>. No constituye ni sustituye ninguna herramienta de prevención, diagnóstico ni tratamiento médico. Úsese con cautela y revísense siempre los resultados antes de administrar cualquier medicamento.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="divide-y divide-gray-100 text-sm">
+                            <div className="flex justify-between items-center py-2.5">
+                                <span className="font-semibold text-gray-400 uppercase text-xs">Versión</span>
+                                <span className="font-bold text-blue-900">PediFarmaAPP v2</span>
+                            </div>
+                            <div className="flex justify-between items-start py-2.5 gap-4">
+                                <span className="font-semibold text-gray-400 uppercase text-xs flex-shrink-0">Novedades v2</span>
+                                <span className="text-gray-600 text-xs text-right">Instalación en móvil y ordenador · Impresión de hoja de dosis</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2.5">
+                                <span className="font-semibold text-gray-400 uppercase text-xs">Autora</span>
+                                <span className="font-bold text-gray-800">Elena Plaza Moreno</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2.5">
+                                <span className="font-semibold text-gray-400 uppercase text-xs">Organización</span>
+                                <span className="font-bold text-gray-800">Urgencias y Emergencias®</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2.5">
+                                <span className="font-semibold text-gray-400 uppercase text-xs">Web</span>
+                                <a href="https://www.urgenciasyemergen.com" target="_blank" className="text-blue-600 hover:underline font-medium">www.urgenciasyemergen.com</a>
+                            </div>
+                            <div className="flex justify-between items-center py-2.5">
+                                <span className="font-semibold text-gray-400 uppercase text-xs">Contacto</span>
+                                <a href="https://www.urgenciasyemergen.com/contacto" target="_blank" className="text-blue-600 hover:underline font-medium">www.urgenciasyemergen.com/contacto</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 px-6 py-4 text-center border-t">
+                        <button onClick={onClose} className="bg-blue-900 text-white px-10 py-2.5 rounded-full font-bold hover:bg-blue-800 transition-colors shadow">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        );
 
         const MainMenu = ({ slides, onNavigate, colors }) => {
             const menuItems = slides.filter(slide => slide.id !== 'cover');
@@ -586,6 +653,8 @@
                 setCustomConc(prev => ({ ...prev, [drugName]: val }));
             };
 
+            const [showAbout, setShowAbout] = useState(false);
+
             const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
             const [canInstall, setCanInstall] = useState(!isAlreadyInstalled);
             useEffect(() => {
@@ -628,7 +697,7 @@
                             Creado por <strong>Elena Martínez de la Hidalga</strong> (<a href="https://www.instagram.com/rescateir/" target="_blank" className="underline hover:text-blue-100 font-bold">@rescateir</a>)
                         </p>
                         <p>
-                            Y por <strong>Elena Plaza Moreno</strong> - Urgencias y Emergencias - <a href="https://www.urgenciasyemergencias.com" target="_blank" className="underline hover:text-blue-100 font-bold">www.urgenciasyemergencias.com</a>
+                            Y por <strong>Elena Plaza Moreno</strong> - Urgencias y Emergencias® - <a href="https://www.urgenciasyemergen.com" target="_blank" className="underline hover:text-blue-100 font-bold">www.urgenciasyemergen.com</a>
                         </p>
                     </div>
                     
@@ -674,6 +743,13 @@
                             <span>📲</span> Instalar app en este dispositivo
                         </button>
                     )}
+
+                    <button
+                        onClick={() => setShowAbout(true)}
+                        className="mt-4 flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-semibold underline underline-offset-2 transition-colors"
+                    >
+                        <Info size={13}/> Acerca de · Aviso legal
+                    </button>
                     </div>
                 )
                 },
@@ -1283,6 +1359,11 @@
                         
                         <div className="flex items-center gap-2 border-l pl-4 ml-2">
                             <button
+                                onClick={() => setShowAbout(true)}
+                                className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                title="Acerca de"
+                            ><Info size={20}/></button>
+                            <button
                                 onClick={() => window.print()}
                                 className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
                                 title="Imprimir hoja de dosis"
@@ -1302,6 +1383,8 @@
                     </div>
                 )}
 
+                {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+
                 <div className="no-print w-full max-w-5xl flex-1 mb-8" style={{ minHeight: '600px' }}>
                     {isMenuOpen ? (
                     <MainMenu slides={slides} onNavigate={handleMenuNavigation} colors={colors} />
@@ -1313,9 +1396,9 @@
                 {/* --- FOOTER --- */}
                 {!isMenuOpen && slideIndex !== 0 && (
                     <div className="no-print py-4 px-2 text-center text-gray-500 text-[10px] md:text-xs border-t mt-4 leading-tight">
-                        <p className="font-bold text-gray-600 mb-1">PediFarmaAPP v2.0</p>
-                        <p>Creado por Elena Plaza Moreno - Urgencias y Emergencias® - www.urgenciasyemergencias.com</p>
-                        <p className="mt-1 opacity-75">© 2026 Todos los derechos reservados.</p>
+                        <p className="font-bold text-gray-600 mb-1">PediFarmaAPP v2</p>
+                        <p>Creada por Elena Plaza Moreno · Urgencias y Emergencias® · <a href="https://www.urgenciasyemergen.com" target="_blank" className="underline hover:text-blue-600">www.urgenciasyemergen.com</a></p>
+                        <p className="mt-1 opacity-60 italic">Calculadora de dosis de uso exclusivo para profesionales sanitarios. No sustituye prevención, diagnóstico ni tratamiento.</p>
                     </div>
                 )}
 
